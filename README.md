@@ -1,16 +1,29 @@
-### Hi there 👋
+# BridgeGC
 
-<!--
-**BridgeGC/BridgeGC** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+Existing garbage collectors usually suffer from heavy GC overhead for large-scale data processing. The primary cause is the gap between big data frameworks and garbage collectors --- big data frameworks usually generate massive long-lived objects, while existing garbage collectors are designed based on the hypothesis that most objects live short. BridgeGC is a semi-automatic garbage collector built on OpenJDK 17 HotSpot to bridge this gap, which especially aiming at reducing GC time of long-lived data objects.
 
-Here are some ideas to get you started:
+# Usage
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Build
+
+Download the [source](./) of BridgeGC-OpenJDK17-HotSpot, follow the [instructions](./) to build the JDK.
+
+## Download
+
+[BridgeGC-OpenJDK17-HotSpot-source](./)
+
+[BridgeGC-OpenJDK17-HotSpot-Linux-x64](./)
+
+[Spark-3.3.0-source](./)
+
+[Flink-1.14.0-source](./)
+
+[Cassandra](./)
+
+## Spark
+
+## Flink
+
+## Cassandra
+
+# Results
