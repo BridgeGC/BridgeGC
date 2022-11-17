@@ -24,6 +24,29 @@ Download the [source](./) of BridgeGC-OpenJDK17-HotSpot, follow the [instruction
 
 ## Flink
 
+```java
+public class MemorySegment {
+  protected final byte[] heapMemory;
+}
+
+pubic MemorySegment allocateSegment(int size) {
+  // Hint for identification
+  byte[] backup = new @Long byte[size];
+  MemorySegment res = new @Long MemorySegment(backup);
+  return res;
+}
+
+void release(Collection<MemorySegment> segments) {
+  while (segments.hasNext()) {
+    final MemorySegment seg = segments.next();
+    seg.free();
+  }
+  segments.clear();
+  // Hint for reclamation
+  System.Deadpoint();
+}
+```
+
 ## Cassandra
 
 # Results
