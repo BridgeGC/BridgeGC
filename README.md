@@ -2,6 +2,8 @@
 
 BridgeGC is a semi-automatic garbage collector built on OpenJDK 16 HotSpot aiming at reducing GC time of long-lived data objects.
 
+For more details, please refer to out [paper](./).
+
 # Usage
 
 ## Build & Run
@@ -21,7 +23,9 @@ public class MemorySegment {
 }
 ```
 
-MemorySegment is explicitly created and released in fixed functions, hints(annotation @Long and function Deadpoint) could be easily applied in these functions.
+MemorySegment is explicitly created and released in fixed functions, hints(annotation `@Long` and function `Deadpoint`) could be easily applied in these functions.
+
+BridgeGC identifies target data objects and manages their creation by leveraging hints at their allocation sites. The annotation `@Long` for keyword `new` is added to the codes of creation functions where data objects are allocated. During object allocation at GC level, BridgeGC determines a memory request as an allocation of data object if it is annotated, and places the object into a special region.
 
 ```java
 pubic MemorySegment allocateSegment(int size) {
@@ -30,7 +34,11 @@ pubic MemorySegment allocateSegment(int size) {
   MemorySegment res = new @Long MemorySegment(backup);
   return res;
 }
+```
 
+To realize the life cycles of all data objects and reclaim them, hints at their release function signal common dead points. The Java System Call `System.Deadpoint()` is added in the release functions after all data objects are explicitly released by frameworks. BridgeGC would determine some data objects have finished their life cycles and become reclaimable after receiving a signal of `System.Deadpoint()`.
+
+```java
 void release(Collection<MemorySegment> segments) {
   while (segments.hasNext()) {
     final MemorySegment seg = segments.next();
