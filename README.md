@@ -1,34 +1,29 @@
 # BridgeGC
 
-Existing garbage collectors usually suffer from heavy GC overhead for large-scale data processing. The primary cause is the gap between big data frameworks and garbage collectors --- big data frameworks usually generate massive long-lived objects, while existing garbage collectors are designed based on the hypothesis that most objects live short. BridgeGC is a semi-automatic garbage collector built on OpenJDK 17 HotSpot to bridge this gap, which especially aiming at reducing GC time of long-lived data objects.
+BridgeGC is a semi-automatic garbage collector built on OpenJDK 16 HotSpot aiming at reducing GC time of long-lived data objects.
 
 # Usage
 
-## Build
+## Build & Run
 
-Download the [source](./) of BridgeGC-OpenJDK17-HotSpot, follow the [instructions](./) to build the JDK.
+Download the [source](./) of BridgeGC-OpenJDK16-HotSpot, follow the [instructions](./) to build the JDK, and use it like OpenJDK.
 
-## Download
+## Use BridgeGC
 
-[BridgeGC-OpenJDK17-HotSpot-source](./)
+BridgeGC accurately manage long-lived objects with hints added manually.
 
-[BridgeGC-OpenJDK17-HotSpot-Linux-x64](./)
-
-[Spark-3.3.0-source](./)
-
-[Flink-1.14.0-source](./)
-
-[Cassandra](./)
-
-## Spark
-
-## Flink
+To make BridgeGC effectual, hints should be applied at the framework level to data objects with features of long-lived, great amount, and a simple reference relationship. Abstracted data objects, for example [MemorySegment](https://github.com/apache/flink/blob/master/flink-core/src/main/java/org/apache/flink/core/memory/MemorySegment.java) in [Flink](http://flink.apache.org/), generally satisfy these features, and they are widely used in modern big data frameworks.
 
 ```java
 public class MemorySegment {
+  // Simple reference relationship
   protected final byte[] heapMemory;
 }
+```
 
+MemorySegment is explicitly created and released in fixed functions, hints(annotation @Long and function Deadpoint) could be easily applied in these functions.
+
+```java
 pubic MemorySegment allocateSegment(int size) {
   // Hint for identification
   byte[] backup = new @Long byte[size];
@@ -46,7 +41,5 @@ void release(Collection<MemorySegment> segments) {
   System.Deadpoint();
 }
 ```
-
-## Cassandra
 
 # Results
