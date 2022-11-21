@@ -2,13 +2,13 @@
 
 BridgeGC is a semi-automatic garbage collector built on OpenJDK 16 HotSpot aiming at reducing GC time of long-lived data objects.
 
-For more details, please refer to out [paper](./).
+For more details, please refer to our [paper](./).
 
 # Usage
 
 ## Build & Run
 
-Download the [source](./) of BridgeGC-OpenJDK16-HotSpot, follow the [instructions](./) to build the JDK, and use it like OpenJDK.
+Download the [source](./) of BridgeGC-OpenJDK16-HotSpot, follow the [instructions](./) to build the JDK, and use it like OpenJDK. Add `-XX:+UseBridgeGC` to enable BridgeGC.
 
 ## Use BridgeGC
 
