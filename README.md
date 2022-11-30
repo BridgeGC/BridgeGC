@@ -127,7 +127,7 @@ Execution time of applications in Flink under different memory segment sizes(res
 
 ## Spark
 
-Execution time of Hibench applications in Spark under different collectors(results are normalized to ZGC):
+Execution time of [Hibench](https://github.com/Intel-bigdata/HiBench) applications in Spark under different collectors(results are normalized to ZGC):
 
 <img decoding="async" src="spark_overall.svg" width="50%">
 
