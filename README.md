@@ -74,7 +74,7 @@ public long cleanUpAllAllocatedMemory(){
 }
 ```
 
-java.nio.ByteBuffer are also used as abstracted data objects in Spark. Annotations can be applied to chunked ByteBuffers, which are created to store serialized data of cached RDD with the byte array they hold, and they are released when the cached RDD is spilled to disk.
+`java.nio.ByteBuffer` are also used as abstracted data objects in Spark. Annotations can be applied to chunked ByteBuffers, which are created to store serialized data of cached RDD with the byte array they hold, and they are released when the cached RDD is spilled to disk.
 
 ```java
 public class ByteBuffer{
@@ -119,8 +119,20 @@ public void flushMemtable(Memtable memtable){
 
 # Results
 
-[Flink]()
+## Flink
 
-[Spark]()
+Execution time of applications in Flink under different memory segment sizes(results are normalized to ZGC):
 
-[Cassandra]()
+<img decoding="async" src="flink_overall.svg" width="100%">
+
+## Spark
+
+Execution time of Hibench applications in Spark under different collectors(results are normalized to ZGC):
+
+<img decoding="async" src="spark_overall.svg" width="50%">
+
+## Cassandra
+
+Tail latency comparison between different garbage collectors in Cassandra workloads:
+
+<img decoding="async" src="cassandra_latency.svg" width="50%">
