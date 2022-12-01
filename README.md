@@ -8,7 +8,7 @@ For more details, please refer to our [paper](./).
 
 ## Build & Run
 
-Download the source of BridgeGC, follow the [building-doc](https://github.com/openjdk/jdk16/blob/master/doc/building.html) to build the JDK, and use it like OpenJDK. Add `-XX:+UseBridgeGC` to enable BridgeGC.
+Download the source of BridgeGC, follow the [building-doc](https://github.com/openjdk/jdk16/blob/master/doc/building.md) to build the JDK, and use it like OpenJDK. Add `-XX:+UseBridgeGC` to enable BridgeGC.
 
 ## Use BridgeGC in Flink
 
