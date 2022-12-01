@@ -950,7 +950,7 @@ class StubGenerator: public StubCodeGenerator {
     __ jcc(Assembler::zero, exit); // if obj is NULL it is OK
 
 #if INCLUDE_ZGC
-    if (UseZGC) {
+    if (UseBridgeGC) {
       // Check if metadata bits indicate a bad oop
       __ testptr(rax, Address(r15_thread, ZThreadLocalData::address_bad_mask_offset()));
       __ jcc(Assembler::notZero, error);

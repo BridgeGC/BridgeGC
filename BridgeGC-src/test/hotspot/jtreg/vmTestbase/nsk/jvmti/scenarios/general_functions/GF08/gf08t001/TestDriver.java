@@ -70,17 +70,17 @@ public class TestDriver {
         WhiteBox wb = WhiteBox.getWhiteBox();
         Boolean isExplicitGCInvokesConcurrentOn = wb.getBooleanVMFlag("ExplicitGCInvokesConcurrent");
         boolean isUseG1GCon = GC.G1.isSelected();
-        boolean isUseZGCon = GC.Z.isSelected();
+        boolean isUseBridgeGCon = GC.Z.isSelected();
         boolean isShenandoahGCon = GC.Shenandoah.isSelected();
         boolean isUseEpsilonGCon = GC.Epsilon.isSelected();
 
         if (Compiler.isGraalEnabled() &&
-            (isUseZGCon || isUseEpsilonGCon || isShenandoahGCon)) {
+            (isUseBridgeGCon || isUseEpsilonGCon || isShenandoahGCon)) {
             return; // Graal does not support these GCs
         }
 
         String keyPhrase;
-        if ((isExplicitGCInvokesConcurrentOn && isUseG1GCon) || isUseZGCon || isShenandoahGCon) {
+        if ((isExplicitGCInvokesConcurrentOn && isUseG1GCon) || isUseBridgeGCon || isShenandoahGCon) {
             keyPhrase = "GC";
         } else {
             keyPhrase = "Pause Full";

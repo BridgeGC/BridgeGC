@@ -182,7 +182,7 @@ public class HeapSummary extends Tool {
            return;
        }
 
-       l = getFlagValue("UseZGC", flagMap);
+       l = getFlagValue("UseBridgeGC", flagMap);
        if (l == 1L) {
            System.out.print("ZGC ");
            l = getFlagValue("ParallelGCThreads", flagMap);

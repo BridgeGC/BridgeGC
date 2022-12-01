@@ -26,8 +26,8 @@
  * @requires vm.gc.Z
  * @summary Test ZGC heap memory MXBean
  * @modules java.management
- * @run main/othervm -XX:+UseZGC -Xms128M -Xmx256M -Xlog:gc* TestMemoryMXBean 128 256
- * @run main/othervm -XX:+UseZGC -Xms256M -Xmx256M -Xlog:gc* TestMemoryMXBean 256 256
+ * @run main/othervm -XX:+UseBridgeGC -Xms128M -Xmx256M -Xlog:gc* TestMemoryMXBean 128 256
+ * @run main/othervm -XX:+UseBridgeGC -Xms256M -Xmx256M -Xlog:gc* TestMemoryMXBean 256 256
  */
 
 import java.lang.management.ManagementFactory;

@@ -102,7 +102,7 @@ public class IncompatibleOptions {
         // Uncompressed OOPs
         testDump(1, "-XX:+UseG1GC", "-XX:-UseCompressedOops", null, false);
         if (GC.Z.isSupported()) {
-            testDump(1, "-XX:+UseZGC", "-XX:-UseCompressedOops", null, false);
+            testDump(1, "-XX:+UseBridgeGC", "-XX:-UseCompressedOops", null, false);
         }
 
         // incompatible GCs

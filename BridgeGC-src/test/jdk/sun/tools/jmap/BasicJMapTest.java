@@ -98,7 +98,7 @@ import jdk.test.lib.process.ProcessTools;
  * @build jdk.test.lib.hprof.model.*
  * @build jdk.test.lib.hprof.parser.*
  * @build jdk.test.lib.hprof.util.*
- * @run main/othervm/timeout=240 -XX:+UseZGC BasicJMapTest
+ * @run main/othervm/timeout=240 -XX:+UseBridgeGC BasicJMapTest
  */
 
 public class BasicJMapTest {

@@ -286,7 +286,7 @@ class DynamicArchiveTestBase {
      *   the JDK was built via cross-compilation on a different platform;
      * - the VM under test was started with a different options than the ones
      *   when the default CDS archive was built. E.g. the VM was started with
-     *   -XX:+UseZGC which implicitly disabled the UseCompressedOoops and the
+     *   -XX:+UseBridgeGC which implicitly disabled the UseCompressedOoops and the
      *   UseCompressedClassPointers options. Those "compressed" options were
      *   enabled when the default CDS archive was built.
      */

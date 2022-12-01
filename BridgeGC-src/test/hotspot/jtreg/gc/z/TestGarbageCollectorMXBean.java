@@ -26,8 +26,8 @@
  * @requires vm.gc.Z
  * @summary Test ZGC garbage collector MXBean
  * @modules java.management
- * @run main/othervm -XX:+UseZGC -Xms256M -Xmx512M -Xlog:gc TestGarbageCollectorMXBean 256 512
- * @run main/othervm -XX:+UseZGC -Xms512M -Xmx512M -Xlog:gc TestGarbageCollectorMXBean 512 512
+ * @run main/othervm -XX:+UseBridgeGC -Xms256M -Xmx512M -Xlog:gc TestGarbageCollectorMXBean 256 512
+ * @run main/othervm -XX:+UseBridgeGC -Xms512M -Xmx512M -Xlog:gc TestGarbageCollectorMXBean 512 512
  */
 
 import java.lang.management.ManagementFactory;

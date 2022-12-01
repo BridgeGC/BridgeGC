@@ -61,7 +61,7 @@ public class TestNoWarningLoopStripMiningIterSet {
     }
 
     public static void main(String[] args) throws Exception {
-        for (String gc : List.of("-XX:+UseG1GC", "-XX:+UseZGC", "-XX:+UseShenandoahGC", "-XX:+UseEpsilonGC")) {
+        for (String gc : List.of("-XX:+UseG1GC", "-XX:+UseBridgeGC", "-XX:+UseShenandoahGC", "-XX:+UseEpsilonGC")) {
             testWith(output -> output.shouldNotContain(CLSOffLSMGreaterZero), "should have CLS and LSM enabled", true, 100, "-XX:LoopStripMiningIter=100", gc);
             testWith(output -> output.shouldContain(CLSOffLSMGreaterZero), "should have CLS and LSM disabled", false, 0, "-XX:-UseCountedLoopSafepoints", "-XX:LoopStripMiningIter=100", gc);
             testWith(output -> output.shouldContain(CLSOnLSMEqualZero), "should have CLS and LSM enabled", true, 1, "-XX:LoopStripMiningIter=0", gc);

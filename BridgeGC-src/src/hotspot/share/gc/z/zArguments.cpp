@@ -60,7 +60,7 @@ void ZArguments::initialize() {
   }
 
   if (ParallelGCThreads == 0) {
-    vm_exit_during_initialization("The flag -XX:+UseZGC can not be combined with -XX:ParallelGCThreads=0");
+    vm_exit_during_initialization("The flag -XX:+UseBridgeGC can not be combined with -XX:ParallelGCThreads=0");
   }
 
   // Select number of concurrent threads
@@ -69,7 +69,7 @@ void ZArguments::initialize() {
   }
 
   if (ConcGCThreads == 0) {
-    vm_exit_during_initialization("The flag -XX:+UseZGC can not be combined with -XX:ConcGCThreads=0");
+    vm_exit_during_initialization("The flag -XX:+UseBridgeGC can not be combined with -XX:ConcGCThreads=0");
   }
 
 #ifdef COMPILER2

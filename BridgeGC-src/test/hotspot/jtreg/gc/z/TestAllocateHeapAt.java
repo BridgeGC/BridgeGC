@@ -42,7 +42,7 @@ public class TestAllocateHeapAt {
         final String failedToCreateFile = "Failed to create file " + directory;
 
         ProcessTools.executeProcess(ProcessTools.createJavaProcessBuilder(
-                "-XX:+UseZGC",
+                "-XX:+UseBridgeGC",
                 "-Xlog:gc*",
                 "-Xms32M",
                 "-Xmx32M",

@@ -30,8 +30,8 @@ package gc.stress.gcold;
  * @library / /test/lib
  * @requires vm.gc.Z
  * @summary Stress the Z
- * @run main/othervm -Xmx384M -XX:+UseZGC gc.stress.gcold.TestGCOldWithZ 50 1 20 10 10000
- * @run main/othervm -Xmx256m -XX:+UseZGC gc.stress.gcold.TestGCOldWithZ 50 5 20 1 5000
+ * @run main/othervm -Xmx384M -XX:+UseBridgeGC gc.stress.gcold.TestGCOldWithZ 50 1 20 10 10000
+ * @run main/othervm -Xmx256m -XX:+UseBridgeGC gc.stress.gcold.TestGCOldWithZ 50 5 20 1 5000
  */
 public class TestGCOldWithZ {
     public static void main(String[] args) {

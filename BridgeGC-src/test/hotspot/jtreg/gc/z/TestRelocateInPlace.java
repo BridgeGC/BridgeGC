@@ -27,7 +27,7 @@ package gc.z;
  * @test TestRelocateInPlace
  * @requires vm.gc.Z
  * @summary Test ZGC in-place relocateion
- * @run main/othervm -XX:+UseZGC -Xlog:gc*,gc+stats=off -Xmx256M -XX:+UnlockDiagnosticVMOptions -XX:+ZStressRelocateInPlace gc.z.TestRelocateInPlace
+ * @run main/othervm -XX:+UseBridgeGC -Xlog:gc*,gc+stats=off -Xmx256M -XX:+UnlockDiagnosticVMOptions -XX:+ZStressRelocateInPlace gc.z.TestRelocateInPlace
  */
 
 import java.util.ArrayList;

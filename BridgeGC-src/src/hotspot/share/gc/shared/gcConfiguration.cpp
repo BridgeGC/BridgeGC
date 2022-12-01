@@ -42,7 +42,7 @@ GCName GCConfiguration::young_collector() const {
     return ParallelScavenge;
   }
 
-  if (UseZGC || UseShenandoahGC) {
+  if (UseBridgeGC || UseShenandoahGC) {
     return NA;
   }
 
@@ -58,7 +58,7 @@ GCName GCConfiguration::old_collector() const {
     return ParallelOld;
   }
 
-  if (UseZGC) {
+  if (UseBridgeGC) {
     return Z;
   }
 

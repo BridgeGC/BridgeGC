@@ -42,7 +42,7 @@ import jdk.test.lib.jfr.Events;
  * @summary Test leak profiler with ZGC
  * @library /test/lib /test/jdk
  * @modules jdk.jfr/jdk.jfr.internal.test
- * @run main/othervm  -XX:TLABSize=2k -XX:+UseZGC jdk.jfr.event.oldobject.TestZ
+ * @run main/othervm  -XX:TLABSize=2k -XX:+UseBridgeGC jdk.jfr.event.oldobject.TestZ
  */
 public class TestZ {
 

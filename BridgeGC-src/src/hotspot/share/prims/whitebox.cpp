@@ -395,7 +395,7 @@ WB_ENTRY(jboolean, WB_isObjectInOldGen(JNIEnv* env, jobject o, jobject obj))
   }
 #endif
 #if INCLUDE_ZGC
-  if (UseZGC) {
+  if (UseBridgeGC) {
     return Universe::heap()->is_in(p);
   }
 #endif

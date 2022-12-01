@@ -72,7 +72,7 @@ static const IncludedGC IncludedGCs[] = {
   PARALLELGC_ONLY_ARG(IncludedGC(UseParallelGC,      CollectedHeap::Parallel,   parallelArguments,   "parallel gc"))
     SERIALGC_ONLY_ARG(IncludedGC(UseSerialGC,        CollectedHeap::Serial,     serialArguments,     "serial gc"))
 SHENANDOAHGC_ONLY_ARG(IncludedGC(UseShenandoahGC,    CollectedHeap::Shenandoah, shenandoahArguments, "shenandoah gc"))
-         ZGC_ONLY_ARG(IncludedGC(UseZGC,             CollectedHeap::Z,          zArguments,          "z gc"))
+         ZGC_ONLY_ARG(IncludedGC(UseBridgeGC,             CollectedHeap::Z,          zArguments,          "z gc"))
 };
 
 #define FOR_EACH_INCLUDED_GC(var)                                            \
@@ -92,7 +92,7 @@ void GCConfig::fail_if_non_included_gc_is_selected() {
   NOT_PARALLELGC(  FAIL_IF_SELECTED(UseParallelGC));
   NOT_SERIALGC(    FAIL_IF_SELECTED(UseSerialGC));
   NOT_SHENANDOAHGC(FAIL_IF_SELECTED(UseShenandoahGC));
-  NOT_ZGC(         FAIL_IF_SELECTED(UseZGC));
+  NOT_ZGC(         FAIL_IF_SELECTED(UseBridgeGC));
 }
 
 void GCConfig::select_gc_ergonomically() {

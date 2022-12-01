@@ -259,7 +259,7 @@ public final class HotSpotGraalRuntime implements HotSpotGraalRuntimeProvider {
 
         // Unsupported GCs
         Epsilon(false, JDK >= 11, "UseEpsilonGC", JDK >= 11),
-        Z(false, JDK >= 11, "UseZGC", JDK >= 11),
+        Z(false, JDK >= 11, "UseBridgeGC", JDK >= 11),
         Shenandoah(false, JDK >= 12, "UseShenandoahGC", JDK >= 12);
 
         HotSpotGC(boolean supported, boolean expectNamePresent,

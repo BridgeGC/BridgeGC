@@ -559,7 +559,7 @@ class StubGenerator: public StubCodeGenerator {
     __ cbz(r0, exit); // if obj is NULL it is OK
 
 #if INCLUDE_ZGC
-    if (UseZGC) {
+    if (UseBridgeGC) {
       // Check if mask is good.
       // verifies that ZAddressBadMask & r0 == 0
       __ ldr(c_rarg3, Address(rthread, ZThreadLocalData::address_bad_mask_offset()));
