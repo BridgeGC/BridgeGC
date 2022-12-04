@@ -16,25 +16,25 @@ Download our source code, follow the [instructions](https://openjdk.org/groups/b
 We provide two simple annotations, `@DataObj` and `System.Deadpoint()`, that can be used by the framework developers to annotate the creation and release of data objects. Specifically, the annotation `@DataObj` is used along with the keyword `new` to denote the creation of data objects. The annotation `System.Deadpoint()` is used to denote the release of a batch of data objects. We show how we apply annotations in Spark, Flink and Cassandra briefly as follows and more details can be found [here](Apply/README.md).
 
 <center>
-<img decoding="async" src="Figures/Flink.svg" width="50%">
+<img decoding="async" src="Figures/flink.svg" width="50%">
 
 **Figure 2: Apply BridgeGC annotations to `MemorySegment`.**
 </center>
 
 <center>
-<img decoding="async" src="Figures/Spark-RDD.svg" width="50%">
+<img decoding="async" src="Figures/spark-rdd.svg" width="50%">
 
 **Figure 3: Apply BridgeGC annotations to chunked `ByteBuffer`.**
 </center>
 
 <center>
-<img decoding="async" src="Figures/Spark-Tungsten.svg" width="50%">
+<img decoding="async" src="Figures/spark-tungsten.svg" width="50%">
 
 **Figure 4: Apply BridgeGC annotations to `MemoryBlock`.**
 </center>
 
 <center>
-<img decoding="async" src="Figures/Cassandra.svg" width="50%">
+<img decoding="async" src="Figures/cassandra.svg" width="50%">
 
 **Figure 5: Apply BridgeGC annotations to `ByteBuffer` for Memtable.**
 </center>
