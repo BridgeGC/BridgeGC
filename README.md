@@ -42,6 +42,18 @@ We provide two simple annotations, `@DataObj` and `System.Deadpoint()`, that can
 ## Run
 After adding the annotations, compile the framework. Before running the framework, just add `-XX:+UseBridgeGC` to JVM parameters of the executor/server to enable BridgeGC.
 
+# Implementation
+We design three components in BridgeGC to efficiently profile, allocate, and reclaim annotated data objects.
+
+## Precise Data Object Profiler
+The profiler is designed to identify data objects and track the life cycles of data objects through annotations, it processes `@DataObj` and `System.Deadpoint()` annotations at the runtime to inform the garbage collector of allocation and reclaimable time of data objects.
+
+## Memory-Efficient Label-Based Allocator
+The allocator separates the storage of data objects and normal objects in data pages and normal pages, and tackles the problem of space balance by dynamic page allocation. To distinguish data objects readily at the GC level, the allocator labels them using colored pointer.
+
+## Effective Marking/Copying-Conservation Collector 
+The collector skips marking labeled data objects and excludes data pages from reclamation in GC cycles where data objects are known to be lived, and performs effective reclamation of data pages only after some annotated data objects are released at the framework level.
+
 # Evaluation
 We apply and evaluate BridgeGC with Flink 1.9.3, Spark 3.3.0, and Cassandra 4.0.6. We compare BridgeGC with all available garbage collectors in OpenJDK 16, includes ZGC, Shenandoah, G1, and Parallel. 
 <!-- We also compare BridgeGC with a state-of-the-art research work [ROLP](https://rodrigo-bruno.github.io/papers/rbruno-eurosys19.pdf).-->
