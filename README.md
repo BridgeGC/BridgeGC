@@ -89,3 +89,5 @@ marking time of BridgeGC is 37%-68% less than ZGC. In terms of application execu
 
 **Figure 8: Tail latency comparison between different garbage collectors in Cassandra workloads.**
 </div>
+
+rushb
