@@ -13,7 +13,7 @@ BridgeGC is an efficient semi-automatic garbage collector for big data framework
 Download our source code, follow the [instructions](https://openjdk.org/groups/build/doc/building.html) to build the OpenJDK JVM, resulting in a JVM with BridgeGC. 
 
 ## Annotations
-We provide two simple annotations, `@DataObj` and `System.Deadpoint()`, that can be used by the framework developers to annotate the creation and release of data objects. Specifically, the annotation `@DataObj` is used along with the keyword `new` to denote the creation of data objects. The annotation `System.Deadpoint()` is used to denote the release of a batch of data objects. We show how we apply annotations in Spark, Flink and Cassandra briefly as follows and more details can be found [here](Apply/README.md).
+We provide two simple annotations, `@DataObj` and `System.Reclaim()`, that can be used by the framework developers to annotate the creation and release of data objects. Specifically, the annotation `@DataObj` is used along with the keyword `new` to denote the creation of data objects. The annotation `System.Reclaim()` is used to denote the release of a batch of data objects. We show how we apply annotations in Spark, Flink and Cassandra briefly as follows and more details can be found [here](Apply/README.md).
 
 <div align=center>
 <img decoding="async" src="Figures/flink.svg" width="50%">
@@ -46,7 +46,7 @@ After adding the annotations, compile the framework. Before running the framewor
 We design three components in BridgeGC to efficiently profile, allocate, and reclaim annotated data objects.
 
 ## Precise Data Object Profiler
-The profiler is designed to identify data objects and track the life cycles of data objects through annotations, it processes `@DataObj` and `System.Deadpoint()` annotations at the runtime to inform the garbage collector of allocation and reclaimable time of data objects.
+The profiler is designed to identify data objects and track the life cycles of data objects through annotations, it processes `@DataObj` and `System.Reclaim()` annotations at the runtime to inform the garbage collector of allocation and reclaimable time of data objects.
 
 ## Memory-Efficient Label-Based Allocator
 The allocator separates the storage of data objects and normal objects in data pages and normal pages, and tackles the problem of space balance by dynamic page allocation. To distinguish data objects readily at the GC level, the allocator labels them using colored pointer.
