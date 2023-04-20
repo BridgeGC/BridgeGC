@@ -143,13 +143,13 @@ HeapWord* ZCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_si
 
 HeapWord* ZCollectedHeap::allocate_new_tklab(size_t* actual_size) {
     //const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(requested_size));
-    const uintptr_t addr = _heap.alloc_tklab(ZPageSizeSmall / 4);
+    const uintptr_t addr = _heap.alloc_tklab(ZPageSizeSmall);
     /*_tklabCount++;
     if(_tklabCount/(1024)!=(_tklabCount-1)/(1024)){
         log_info(gc, heap)("Keep TLAB: " SIZE_FORMAT ,_tklabCount);
     }*/
     if (addr != 0) {
-        *actual_size = ZUtils::bytes_to_words(ZPageSizeSmall / 4);
+        *actual_size = ZUtils::bytes_to_words(ZPageSizeSmall);
     }
     /*if(!_heap.is_object_in_keep(addr)){
         log_info(gc, heap)("Why not in Keep page?");

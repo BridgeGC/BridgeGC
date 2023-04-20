@@ -123,7 +123,7 @@
           "Use the Epsilon (no-op) garbage collector")                      \
                                                                             \
   product(bool, UseBridgeGC, false,                                              \
-          "Use the Z garbage collector")                                    \
+          "Use the BridgeGC garbage collector")                             \
                                                                             \
   product(bool, UseShenandoahGC, false,                                     \
           "Use the Shenandoah garbage collector")                           \

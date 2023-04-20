@@ -72,6 +72,9 @@ public:
   void set_Keep_alloc() {
       _flags |= field_Keep_alloc::encode(true);
   }
+    void unset_Keep_alloc() {
+        _flags |= field_Keep_alloc::encode(false);
+    }
 
   bool Keep_alloc() const {
       return field_Keep_alloc::decode(_flags);

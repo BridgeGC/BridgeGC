@@ -62,6 +62,7 @@ public:
   void collect(GCCause::Cause cause);
   bool static AfterKeep;
   bool static KeepPermit;
+  static int address_compare(uintptr_t* lhs, uintptr_t* rhs);
 };
 
 #endif // SHARE_GC_Z_ZDRIVER_HPP

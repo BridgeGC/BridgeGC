@@ -33,6 +33,8 @@ volatile size_t  ZBarrier::skipbarrier = 0;
 volatile size_t  ZBarrier::non_skipbarrier = 0;
 volatile size_t  ZBarrier::skipweakbarrier = 0;
 volatile size_t  ZBarrier::non_skipweakbarrier = 0;
+ZArray<size_t> ZBarrier::thisarray = ZArray<size_t>(512);
+ZArray<size_t> ZBarrier::lastarray = ZArray<size_t>(512);
 
 template <bool finalizable>
 bool ZBarrier::should_mark_through(uintptr_t addr) {

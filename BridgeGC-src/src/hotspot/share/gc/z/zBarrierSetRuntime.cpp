@@ -27,22 +27,6 @@
 #include "runtime/interfaceSupport.inline.hpp"
 
 JRT_LEAF(oopDesc*, ZBarrierSetRuntime::load_barrier_on_oop_field_preloaded(oopDesc* o, oop* p))
-    /*if(ZAddress::is_keep(ZOop::to_address(o))){
-        log_info(gc, heap)("Throw Barrier:");
-    }*/
-    /*if(ZAddress::is_good(ZOop::to_address(o))){
-        ZBarrier::skipweakbarrier++;
-        if(ZBarrier::skipweakbarrier/(1024*32*4)!=(ZBarrier::skipweakbarrier-1)/(1024*32*4)) {
-            log_info(gc, heap)("Good load: " SIZE_FORMAT, ZBarrier::skipweakbarrier);
-        }
-    }
-
-    if(ZAddress::is_null(ZOop::to_address(o))){
-        ZBarrier::non_skipweakbarrier++;
-        if(ZBarrier::non_skipweakbarrier/(1024*32*4)!=(ZBarrier::non_skipweakbarrier-1)/(1024*32*4)) {
-            log_info(gc, heap)("Null load: " SIZE_FORMAT, ZBarrier::non_skipweakbarrier);
-        }
-    }*/
   return ZBarrier::load_barrier_on_oop_field_preloaded(p, o);
 JRT_END
 

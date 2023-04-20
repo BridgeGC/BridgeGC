@@ -114,6 +114,12 @@ uintptr_t ZRelocate::relocate_object(ZForwarding* forwarding, uintptr_t from_add
 uintptr_t ZRelocate::forward_object(ZForwarding* forwarding, uintptr_t from_addr) const {
     ZForwardingCursor cursor;
     const uintptr_t to_addr = forwarding_find(forwarding, from_addr, &cursor);
+    /*if(to_addr==0){
+        if(ZAddress::is_keep(from_addr))
+            log_info(gc, heap)("is keep %lx" ,from_addr);
+        else
+            log_info(gc, heap)("is normal %lx" ,from_addr);
+    }*/
     assert(to_addr != 0, "Should be forwarded");
     return to_addr;
 }

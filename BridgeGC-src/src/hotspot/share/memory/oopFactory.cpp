@@ -114,6 +114,13 @@ typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, TRAPS)
   return result;
 }
 
+typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, int alloc_gen, TRAPS) {
+    Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
+    TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
+    typeArrayOop result = type_asArrayKlass->allocate_common(alloc_gen, length, false, THREAD);
+    return result;
+}
+
 
 objArrayOop oopFactory::new_objArray(Klass* klass, int length, TRAPS) {
   assert(klass->is_klass(), "must be instance class");

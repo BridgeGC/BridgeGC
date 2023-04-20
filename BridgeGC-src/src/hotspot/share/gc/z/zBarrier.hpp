@@ -27,6 +27,7 @@
 #include "memory/allocation.hpp"
 #include "memory/iterator.hpp"
 #include "oops/oop.hpp"
+#include "zArray.hpp"
 
 typedef bool (*ZBarrierFastPath)(uintptr_t);
 typedef uintptr_t (*ZBarrierSlowPath)(uintptr_t);
@@ -82,6 +83,8 @@ public:
     volatile static size_t non_skipbarrier;
     volatile static size_t skipweakbarrier;
     volatile static size_t non_skipweakbarrier;
+    ZArray<size_t> static thisarray;
+    ZArray<size_t> static lastarray;
   // Load barrier
   //static void set_direct(oop* p, bool finalizable);
   static  oop load_barrier_on_oop(oop o);
@@ -129,6 +132,7 @@ public:
   static oop  weak_load_barrier_on_oop_field_preloaded(volatile narrowOop* p, oop o);
   static oop  weak_load_barrier_on_weak_oop_field_preloaded(volatile narrowOop* p, oop o);
   static oop  weak_load_barrier_on_phantom_oop_field_preloaded(volatile narrowOop* p, oop o);
+  // static int address_compare(uintptr_t* const lhs, uintptr_t* const rhs);
 
 //    static size_t skipbarrier;
 //    static size_t non_skipbarrier;

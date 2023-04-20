@@ -290,7 +290,7 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_nozero_C(Klass* array_type, int all
   assert(array_type->is_typeArray_klass(), "should be called only for type array");
   // The oopFactory likes to work with the element type.
   BasicType elem_type = TypeArrayKlass::cast(array_type)->element_type();
-  result = oopFactory::new_typeArray_nozero(elem_type, len, THREAD);
+  result = oopFactory::new_typeArray_nozero(elem_type, len, alloc_gen,THREAD);
 
   // Pass oops back through thread local storage.  Our apparent type to Java
   // is that we return an oop, but we can block on exit from this routine and

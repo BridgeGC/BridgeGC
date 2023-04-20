@@ -714,7 +714,7 @@ class GrowableArrayCHeap : public GrowableArrayWithAllocator<E, GrowableArrayCHe
     return (E*)GrowableArrayCHeapAllocator::allocate(max, sizeof(E), flags);
   }
 
-  NONCOPYABLE(GrowableArrayCHeap);
+  // NONCOPYABLE(GrowableArrayCHeap);
 
   E* allocate() {
     return allocate(this->_max, F);
