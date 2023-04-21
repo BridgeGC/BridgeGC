@@ -1,7 +1,7 @@
 To make BridgeGC effectual, we apply annotations in popular big data systems to data objects with features of long-lived, great amount, and a simple reference relationship. These objects contribute most GC overhead, and could be annotated with limited effort as they are explicitly created and released.
 
 ## Apply BridgeGC annotations in Flink
-In Flink, we apply annotations to `MemorySegment`. `MemorySegment` use the primitive byte array it holds to store serialized data records. They could take 70% space of heap memory by defaults, and they are allocated to specific tasks for operations like cache and shuffle, released at the end of the task. As `MemorySegment` is explicitly created and released in fixed functions, we apply annotations `@DataObj` and `System.Deadpoint()` in these functions as shown in Figure 1.
+In Flink, we apply annotations to `MemorySegment`. `MemorySegment` use the primitive byte array it holds to store serialized data records. They could take 70% space of heap memory by defaults, and they are allocated to specific tasks for operations like cache and shuffle, released at the end of the task. As `MemorySegment` is explicitly created and released in fixed functions, we apply annotations `@DataObj` and `System.Reclaim()` in these functions as shown in Figure 1.
 
 <div align=center>
 <img decoding="async" src="../Figures/flink.svg" width="50%">
@@ -27,7 +27,7 @@ In Spark Tungsten, we apply annotations to `MemoryBlock`. The role of `MemoryBlo
 </div>
 
 ## Apply BridgeGC annotations in Cassandra
-In Cassandra, we also apply annotations to `java.nio.ByteBuffer`. `java.nio.ByteBuffers` are used by `Memtable` of Cassandra. A `Memtable` buffers recent writes in memory, which is flushed to disk when its size reaches a threshold. Millions of `java.nio.ByteBuffer` are referenced by Memtable to hold buffered data, which are discarded when the Memtable is flushed. We apply annotations to as `java.nio.ByteBuffer` for Memtable as shown in Figure 4.
+In Cassandra, we can also apply annotations to `java.nio.ByteBuffer`. `java.nio.ByteBuffers` are used by `Memtable` of Cassandra. A `Memtable` buffers recent writes in memory, which is flushed to disk when its size reaches a threshold. Millions of `java.nio.ByteBuffer` are referenced by Memtable to hold buffered data, which are discarded when the Memtable is flushed. We can apply annotations to as `java.nio.ByteBuffer` for Memtable as shown in Figure 4.
 
 <div align=center>
 <img decoding="async" src="../Figures/cassandra.svg" width="50%">

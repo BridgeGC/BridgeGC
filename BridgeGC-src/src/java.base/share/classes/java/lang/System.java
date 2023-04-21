@@ -1815,7 +1815,7 @@ public final class System {
          *
          * @see     java.lang.Runtime#gc()
          */
-    public static void Deadpoint() {
+    public static void Reclaim() {
         Runtime.getRuntime().setpermit();
     }
 
