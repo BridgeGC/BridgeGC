@@ -65,7 +65,7 @@ Results show that BridgeGC reduces concurrent GC time by 23\%-85\% compared to t
 <div align=center>
 <img decoding="async" src="Figures/flink_overall.svg" width="100%">
 
-**Figure 6: Execution time of applications in Flink under different memory segment sizes.** Results are normalized to ZGC.
+**Figure 6: Speedup of evaluated collectors compared to ZGC with Flink Applications.**
 </div>
 
 ## Spark
@@ -76,5 +76,5 @@ Results show that BridgeGC reduces concurrent GC time by 23\%-52\% compared to t
 <div align=center>
 <img decoding="async" src="Figures/spark_overall.svg" width="100%">
 
-**Figure 7: Execution time of HiBench applications in Spark using different collectors.** Results are normalized to ZGC.
+**Figure 7: Speedup of evaluated collectors compared to ZGC with Spark Applications.**
 </div>
