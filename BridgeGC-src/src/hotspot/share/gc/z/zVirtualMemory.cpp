@@ -106,6 +106,7 @@ bool ZVirtualMemoryManager::reserve_contiguous(uintptr_t start, size_t size) {
 
   // Reserve address views
   const uintptr_t keep = ZAddress::keep(start);
+  const uintptr_t another_keep = ZAddress::anotherkeep(start);
   const uintptr_t marked0 = ZAddress::marked0(start);
   const uintptr_t marked1 = ZAddress::marked1(start);
   const uintptr_t remapped = ZAddress::remapped(start);
@@ -133,12 +134,21 @@ bool ZVirtualMemoryManager::reserve_contiguous(uintptr_t start, size_t size) {
         return false;
     }
 
+    if (!pd_reserve(another_keep, size)) {
+        pd_unreserve(keep, size);
+        pd_unreserve(marked0, size);
+        pd_unreserve(marked1, size);
+        pd_unreserve(remapped, size);
+        return false;
+    }
+
 
   // Register address views with native memory tracker
   nmt_reserve(marked0, size);
   nmt_reserve(marked1, size);
   nmt_reserve(remapped, size);
-    nmt_reserve(keep, size);
+  nmt_reserve(keep, size);
+  nmt_reserve(another_keep,size);
 
   // Make the address range free
   _manager.free(start, size);

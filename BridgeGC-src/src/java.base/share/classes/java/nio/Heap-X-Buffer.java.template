@@ -244,6 +244,7 @@ class Heap$Type$Buffer$RW$
         if (length > limit() - pos)
             throw new BufferOverflowException();
         System.arraycopy(src, offset, hb, ix(pos), length);
+        // System.out.println("Array Copy!");
         position(pos + length);
         return this;
 #else[rw]

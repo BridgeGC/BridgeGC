@@ -243,7 +243,7 @@ public:
   virtual Node* obj_allocate(PhaseMacroExpand* macro, Node* ctrl, Node* mem, Node* toobig_false, Node* size_in_bytes,
                              Node*& i_o, Node*& needgc_ctrl,
                              Node*& fast_oop_ctrl, Node*& fast_oop_rawmem,
-                             intx prefetch_lines, int alloc_gen) const;
+                             intx prefetch_lines, bool annotated) const;
 
   virtual Node* ideal_node(PhaseGVN* phase, Node* n, bool can_reshape) const { return NULL; }
 

@@ -388,6 +388,7 @@ public abstract class $Type$Buffer
         if (capacity < 0)
             throw createCapacityException(capacity);
         else{
+            // System.out.println("AllocateKeep");
             $type$[] input = new @DataObj $type$[capacity];
             return new @DataObj Heap$Type$Buffer(capacity, capacity, null, input);
         }

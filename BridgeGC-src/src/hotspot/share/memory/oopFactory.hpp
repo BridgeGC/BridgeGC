@@ -49,14 +49,14 @@ class oopFactory: AllStatic {
 
   static typeArrayOop    new_charArray(const char* utf8_str,  TRAPS);
 
-  static typeArrayOop    new_typeArray(int alloc_gen, BasicType type, int length, TRAPS);
+  static typeArrayOop    new_typeArray(bool annotated, BasicType type, int length, TRAPS);
   static typeArrayOop    new_typeArray_nozero(BasicType type, int length, TRAPS);
-  static typeArrayOop    new_typeArray_nozero(BasicType type, int length, int alloc_gen, TRAPS);
+  static typeArrayOop    new_typeArray_nozero(BasicType type, int length, bool annotated, TRAPS);
   static typeArrayOop    new_symbolArray(int length, TRAPS);
 
   // Regular object arrays
   static objArrayOop     new_objArray(Klass* klass, int length, TRAPS);
-  static objArrayOop     new_objArray(Klass* klass, int length, int alloc_gen, TRAPS);
+  static objArrayOop     new_objArray(Klass* klass, int length, bool annotated, TRAPS);
 
   // Helper that returns a Handle
   static objArrayHandle  new_objArray_handle(Klass* klass, int length, TRAPS);

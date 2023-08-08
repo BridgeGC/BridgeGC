@@ -74,9 +74,10 @@ class outputStream;
 
 class OopStorage : public CHeapObj<mtGC> {
 public:
-  explicit OopStorage(const char* name);
+  explicit OopStorage(const char* name, bool type);
   ~OopStorage();
 
+  bool _datatype;
   // These count and usage accessors are racy unless at a safepoint.
 
   // The number of allocated and not yet released entries.
@@ -104,6 +105,7 @@ public:
   // postcondition: *result == NULL.
   oop* allocate();
 
+  void append(oop* p);
   // Deallocates ptr.  No locking.
   // precondition: ptr is a valid allocated entry.
   // precondition: *ptr == NULL.
@@ -236,6 +238,7 @@ private:
 private:
   const char* _name;
   ActiveArray* _active_array;
+  GrowableArrayCHeap<oop*, mtGC> _follower_array;
   AllocationList _allocation_list;
   Block* volatile _deferred_updates;
   Mutex* _allocation_mutex;

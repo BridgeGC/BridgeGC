@@ -98,7 +98,8 @@ class Method : public Metadata {
   JFR_ONLY(DEFINE_TRACE_FLAG;)
 
   // <underscore> NULL if there is no alloc anno.
-  AnnotationArray* _alloc_anno;
+  AnnotationArray* _annotation;
+  bool _is_annotated;
 
 #ifndef PRODUCT
   int               _compiled_invocation_count;  // Number of nmethod invocations so far (for perf. debugging)
@@ -168,8 +169,8 @@ class Method : public Metadata {
   int generic_signature_index() const            { return constMethod()->generic_signature_index(); }
   void set_generic_signature_index(int index)    { constMethod()->set_generic_signature_index(index); }
 
-  AnnotationArray* alloc_anno()                  { return _alloc_anno; }
-  void set_alloc_anno(AnnotationArray* ptr)      { _alloc_anno = ptr; }
+  bool is_annotated()                  { return _is_annotated; }
+  void annotated(bool is_annotated, AnnotationArray* annotation)      { _is_annotated = is_annotated; _annotation = annotation;}
 
   // annotations support
   AnnotationArray* annotations() const           {
@@ -727,7 +728,7 @@ public:
   // interpreter support
   static ByteSize const_offset()                 { return byte_offset_of(Method, _constMethod       ); }
   static ByteSize access_flags_offset()          { return byte_offset_of(Method, _access_flags      ); }
-  static ByteSize alloc_anno_offset()            { return byte_offset_of(Method, _alloc_anno); }
+  static ByteSize annotation_offset()            { return byte_offset_of(Method, _annotation); }
   static ByteSize from_compiled_offset()         { return byte_offset_of(Method, _from_compiled_entry); }
   static ByteSize code_offset()                  { return byte_offset_of(Method, _code); }
   static ByteSize method_data_offset()           {

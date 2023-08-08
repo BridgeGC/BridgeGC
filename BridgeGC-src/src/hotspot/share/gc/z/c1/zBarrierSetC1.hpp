@@ -55,16 +55,44 @@ public:
 #endif // PRODUCT
 };
 
+class ZKeepBarrierStubC1 : public CodeStub {
+private:
+    DecoratorSet _decorators;
+    LIR_Opr      _ref_addr;
+    LIR_Opr      _ref;
+    LIR_Opr      _tmp;
+    address      _runtime_stub;
+
+public:
+    ZKeepBarrierStubC1(LIRAccess& access, LIR_Opr ref, address runtime_stub);
+
+    DecoratorSet decorators() const;
+    LIR_Opr ref() const;
+    LIR_Opr ref_addr() const;
+    LIR_Opr tmp() const;
+    address runtime_stub() const;
+
+    virtual void emit_code(LIR_Assembler* ce);
+    virtual void visit(LIR_OpVisitState* visitor);
+
+#ifndef PRODUCT
+    virtual void print_name(outputStream* out) const;
+#endif // PRODUCT
+};
+
 class ZBarrierSetC1 : public BarrierSetC1 {
 private:
   address _load_barrier_on_oop_field_preloaded_runtime_stub;
   address _load_barrier_on_weak_oop_field_preloaded_runtime_stub;
+  address _keep_barrier_prewrite_runtime_stub;
 
   address load_barrier_on_oop_field_preloaded_runtime_stub(DecoratorSet decorators) const;
   void load_barrier(LIRAccess& access, LIR_Opr result) const;
+  void keep_barrier(LIRAccess& access, LIR_Opr result) const;
 
 protected:
   virtual LIR_Opr resolve_address(LIRAccess& access, bool resolve_in_register);
+  virtual void store_at_resolved(LIRAccess& access, LIR_Opr value);
   virtual void load_at_resolved(LIRAccess& access, LIR_Opr result);
   virtual LIR_Opr atomic_xchg_at_resolved(LIRAccess& access, LIRItem& value);
   virtual LIR_Opr atomic_cmpxchg_at_resolved(LIRAccess& access, LIRItem& cmp_value, LIRItem& new_value);

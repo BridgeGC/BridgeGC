@@ -29,6 +29,9 @@
 #include "opto/node.hpp"
 #include "utilities/growableArray.hpp"
 
+// -XX:TieredStopAtLevel=1
+// -XX:-TieredCompilation
+
 const uint8_t ZLoadBarrierElided      = 0;
 const uint8_t ZLoadBarrierStrong      = 1;
 const uint8_t ZLoadBarrierWeak        = 2;
@@ -59,6 +62,30 @@ public:
   Label* continuation();
 };
 
+class ZKeepBarrierStubC2 : public ResourceObj {
+private:
+    const MachNode* _node;
+    const Address   _ref_addr;
+    const Register  _ref;
+    const Register  _tmp;
+    const uint8_t   _barrier_data;
+    Label           _entry;
+    Label           _continuation;
+
+    ZKeepBarrierStubC2(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data);
+
+public:
+    static ZKeepBarrierStubC2* create(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data);
+
+    Address ref_addr() const;
+    Register ref() const;
+    Register tmp() const;
+    address slow_path() const;
+    RegMask& live() const;
+    Label* entry();
+    Label* continuation();
+};
+
 class ZBarrierSetC2 : public BarrierSetC2 {
 private:
   void compute_liveness_at_stubs() const;
@@ -66,6 +93,18 @@ private:
 
 protected:
   virtual Node* load_at_resolved(C2Access& access, const Type* val_type) const;
+  virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const;
+
+//  virtual void keep_barrier(GraphKit* kit,
+//                              Node* ctl,
+//                              Node* store,
+//                              Node* obj,
+//                              Node* adr,
+//                              uint adr_idx,
+//                              Node* val,
+//                              BasicType bt,
+//                              bool use_precise) const;
+
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access,
                                                Node* expected_val,
                                                Node* new_val,

@@ -43,8 +43,10 @@ inline ReferenceDiscoverer* ZHeap::reference_discoverer() {
 }
 
 inline bool ZHeap::is_object_in_keep(uintptr_t addr){
+//    if(!ZAddress::is_in(addr))
+//        return false;
     ZPage* page = _page_table.get(addr);
-    if(page->is_keep())
+    if(page!=NULL && page->is_keep())
         return true;
     else
         return false;
@@ -99,8 +101,8 @@ inline uintptr_t ZHeap::alloc_tklab(size_t size) {
     return _object_allocator.alloc_tklab(size);
 }
 
-inline uintptr_t ZHeap::alloc_object(size_t size, int alloc_gen) {
-  uintptr_t addr = _object_allocator.alloc_object(size, alloc_gen);
+inline uintptr_t ZHeap::alloc_object(size_t size, bool annotated) {
+  uintptr_t addr = _object_allocator.alloc_object(size, annotated);
   assert(ZAddress::is_good_or_null(addr), "Bad address");
 
   if (addr == 0) {
@@ -161,7 +163,7 @@ inline void ZHeap::check_out_of_memory() {
 }
 
 inline bool ZHeap::is_oop(uintptr_t addr) const {
-  return (ZAddress::is_good(addr)|| ZAddress::is_keep(addr)) && is_object_aligned(addr) && is_in(addr);
+  return (ZAddress::is_good(addr)|| ZAddress::is_current_keep(addr)) && is_object_aligned(addr) && is_in(addr);
 }
 
 #endif // SHARE_GC_Z_ZHEAP_INLINE_HPP

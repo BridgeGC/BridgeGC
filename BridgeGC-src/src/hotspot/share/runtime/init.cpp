@@ -22,6 +22,7 @@
  *
  */
 
+#include <gc/shared/oopStorageSet.hpp>
 #include "precompiled.hpp"
 #include "classfile/stringTable.hpp"
 #include "classfile/symbolTable.hpp"
@@ -110,6 +111,7 @@ void vm_init_globals() {
 jint init_globals() {
   management_init();
   JvmtiExport::initialize_oop_storage();
+  OopStorageSet::create_strong("Keep Data Objects OopStorage", true);
   bytecodes_init();
   classLoader_init1();
   compilationPolicy_init();

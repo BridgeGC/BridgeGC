@@ -88,10 +88,10 @@ typeArrayOop oopFactory::new_charArray(const char* utf8_str, TRAPS) {
   return result;
 }
 
-typeArrayOop oopFactory::new_typeArray(int alloc_gen, BasicType type, int length, TRAPS) {
+typeArrayOop oopFactory::new_typeArray(bool annotated, BasicType type, int length, TRAPS) {
   Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
   TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
-  typeArrayOop result = type_asArrayKlass->allocate(alloc_gen, length, THREAD);
+  typeArrayOop result = type_asArrayKlass->allocate(annotated, length, THREAD);
   return result;
 }
 
@@ -114,10 +114,10 @@ typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, TRAPS)
   return result;
 }
 
-typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, int alloc_gen, TRAPS) {
+typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, bool annotated, TRAPS) {
     Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
     TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
-    typeArrayOop result = type_asArrayKlass->allocate_common(alloc_gen, length, false, THREAD);
+    typeArrayOop result = type_asArrayKlass->allocate_common(annotated, length, false, THREAD);
     return result;
 }
 
@@ -131,12 +131,12 @@ objArrayOop oopFactory::new_objArray(Klass* klass, int length, TRAPS) {
   }
 }
 
-objArrayOop oopFactory::new_objArray(Klass* klass, int length, int alloc_gen, TRAPS) {
+objArrayOop oopFactory::new_objArray(Klass* klass, int length, bool annotated, TRAPS) {
     assert(klass->is_klass(), "must be instance class");
     if (klass->is_array_klass()) {
         return ArrayKlass::cast(klass)->allocate_arrayArray(1, length, THREAD);
     } else {
-        return InstanceKlass::cast(klass)->allocate_objArray(1, length, alloc_gen, THREAD);
+        return InstanceKlass::cast(klass)->allocate_objArray(1, length, annotated, THREAD);
     }
 }
 objArrayHandle oopFactory::new_objArray_handle(Klass* klass, int length, TRAPS) {

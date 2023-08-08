@@ -366,7 +366,7 @@ JRT_ENTRY(void, Runtime1::new_instance(JavaThread* thread, Klass* klass))
   // make sure klass is initialized
   h->initialize(CHECK);
   // allocate instance and return via TLS
-  oop obj = h->allocate_instance(0,CHECK);
+  oop obj = h->allocate_instance(false,CHECK);
   thread->set_vm_result(obj);
 JRT_END
 
@@ -381,7 +381,7 @@ JRT_ENTRY(void, Runtime1::new_keep_instance(JavaThread* thread, Klass* klass))
     // make sure klass is initialized
     h->initialize(CHECK);
     // allocate instance and return via TLS
-    oop obj = h->allocate_instance(1,CHECK);
+    oop obj = h->allocate_instance(true,CHECK);
     thread->set_vm_result(obj);
 JRT_END
 
@@ -393,23 +393,6 @@ JRT_ENTRY(void, Runtime1::new_type_array(JavaThread* thread, Klass* klass, jint 
   //       (This may have to change if this code changes!)
   assert(klass->is_klass(), "not a class");
   BasicType elt_type = TypeArrayKlass::cast(klass)->element_type();
-  /*assert(thread == Thread::current(), "sanity");
-  RegisterMap reg_map(thread, false);
-  frame runtime_frame = thread->last_frame();
-  frame caller_frame = runtime_frame.sender(&reg_map);
-  frame inter_caller_frame = runtime_frame.interpreter_sender();
-  if(caller_frame.is_interpreted_frame()) {
-      ConstantPool* constants = inter_caller_frame.interpreter_frame_method()->constants();
-  }
-  if(length == 32768) {
-      log_info(gc, heap)("caller_frame: %s", caller_frame.cb()->as_nmethod()->method()->print_value_string());
-  }*/
-  //Array<u2>* aac = m->alloc_anno_cache();
-  /*ConstantPool* constants = last.interpreter_frame_method()->constants();
-  int alloc_gen = InterpreterRuntime::get_alloc_gen(constants, thread,1);*/
-  /*RegisterMap map(thread, false);
-  frame fr =  thread->last_frame().sender(&map);
-  ConstantPool* constants = fr.interpreter_frame_method()->constants();*/
 
   oop obj = oopFactory::new_typeArray(0, elt_type, length, CHECK);
   thread->set_vm_result(obj);

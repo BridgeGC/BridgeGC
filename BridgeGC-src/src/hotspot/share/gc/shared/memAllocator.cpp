@@ -252,9 +252,9 @@ void MemAllocator::Allocation::notify_allocation() {
   notify_allocation_jvmti_sampler();
 }
 
-HeapWord* MemAllocator::allocate_outside_tlab(Allocation& allocation, int alloc_gen) const {
+HeapWord* MemAllocator::allocate_outside_tlab(Allocation& allocation, bool annotated) const {
   allocation._allocated_outside_tlab = true;
-  HeapWord* mem = Universe::heap()->mem_allocate(_word_size, &allocation._overhead_limit_exceeded, alloc_gen);
+  HeapWord* mem = Universe::heap()->mem_allocate(_word_size, &allocation._overhead_limit_exceeded, annotated);
   if (mem == NULL) {
     return mem;
   }
@@ -266,12 +266,12 @@ HeapWord* MemAllocator::allocate_outside_tlab(Allocation& allocation, int alloc_
   return mem;
 }
 
-HeapWord* MemAllocator::allocate_inside_tlab(Allocation& allocation, int alloc_gen) const {
+HeapWord* MemAllocator::allocate_inside_tlab(Allocation& allocation, bool annotated) const {
   assert(UseTLAB, "should use UseTLAB");
 
   // Try allocating from an existing TLAB.
   HeapWord* mem;
-  if(alloc_gen == 1){
+  if(annotated){
       mem = _thread->tklab().allocate(_word_size);
       if (mem != NULL) {
           return mem;
@@ -360,7 +360,7 @@ HeapWord* MemAllocator::allocate_inside_tlab_slow(Allocation& allocation) const 
 HeapWord* MemAllocator::allocate_inside_tklab_slow(Allocation& allocation) const{
     HeapWord* mem = NULL;
 
-    if(ZUtils::words_to_bytes(align_object_size(_word_size)) > ZPageSizeSmall)
+    if(ZUtils::words_to_bytes(align_object_size(_word_size)) > ZPageSizeSmall/8)
         return NULL;
 
     ThreadLocalAllocBuffer& tlab = _thread->tklab();
@@ -412,22 +412,22 @@ HeapWord* MemAllocator::allocate_inside_tklab_slow(Allocation& allocation) const
     return mem;
 }
 
-HeapWord* MemAllocator::mem_allocate(Allocation& allocation,int alloc_gen) const {
+HeapWord* MemAllocator::mem_allocate(Allocation& allocation, bool annotated) const {
   if (UseTLAB) {
-    HeapWord* result = allocate_inside_tlab(allocation , alloc_gen);
+    HeapWord* result = allocate_inside_tlab(allocation , annotated);
     if (result != NULL) {
       return result;
     }
   }
 
-  return allocate_outside_tlab(allocation, alloc_gen);
+  return allocate_outside_tlab(allocation, annotated);
 }
 
-oop MemAllocator::allocate(int alloc_gen) const {
+oop MemAllocator::allocate(bool annotated) const {
   oop obj = NULL;
   {
     Allocation allocation(*this, &obj);
-    HeapWord* mem = mem_allocate(allocation, alloc_gen);
+    HeapWord* mem = mem_allocate(allocation, annotated);
     if (mem != NULL) {
       obj = initialize(mem);
     } else {

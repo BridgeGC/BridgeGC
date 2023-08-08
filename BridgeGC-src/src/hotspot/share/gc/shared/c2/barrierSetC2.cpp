@@ -702,12 +702,12 @@ void BarrierSetC2::clone(GraphKit* kit, Node* src_base, Node* dst_base, Node* si
 Node* BarrierSetC2::obj_allocate(PhaseMacroExpand* macro, Node* ctrl, Node* mem, Node* toobig_false, Node* size_in_bytes,
                                  Node*& i_o, Node*& needgc_ctrl,
                                  Node*& fast_oop_ctrl, Node*& fast_oop_rawmem,
-                                 intx prefetch_lines, int alloc_gen) const {
+                                 intx prefetch_lines, bool annotated) const {
 
   Node* eden_top_adr;
   Node* eden_end_adr;
 
-  macro->set_eden_pointers(eden_top_adr, eden_end_adr, alloc_gen);
+  macro->set_eden_pointers(eden_top_adr, eden_end_adr, annotated);
 
   // Load Eden::end.  Loop invariant and hoisted.
   //
@@ -767,7 +767,7 @@ Node* BarrierSetC2::obj_allocate(PhaseMacroExpand* macro, Node* ctrl, Node* mem,
   macro->transform_later(needgc_false);
 
   i_o = macro->prefetch_allocation(i_o, needgc_false, contended_phi_rawmem,
-                                   old_eden_top, new_eden_top, prefetch_lines, alloc_gen);
+                                   old_eden_top, new_eden_top, prefetch_lines, annotated);
 
   Node* fast_oop = old_eden_top;
 

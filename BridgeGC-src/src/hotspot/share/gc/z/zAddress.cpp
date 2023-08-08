@@ -28,10 +28,11 @@
 
 void ZAddress::set_good_mask(uintptr_t mask) {
   ZAddressGoodMask = mask;
-  ZAddressGoodKeepMask = ZDriver::KeepPermit? ZAddressGoodMask : ZAddressKeepMask;
-  ZAddressbetterMask = ZDriver::KeepPermit? ZAddressGoodMask : ZAddressGoodMask | ZAddressKeepMask;
-  ZAddressBadMask = ZDriver::KeepPermit ? ZAddressGoodMask^ ZAddressMetadataMask : (ZAddressGoodMask | ZAddressKeepMask)^ ZAddressMetadataMask;
-  ZAddressWeakBadMask = (ZAddressGoodMask | ZAddressMetadataRemapped | ZAddressMetadataFinalizable | ZAddressKeepMask) ^ ZAddressMetadataMask;
+  ZAddressGoodKeepMask = ZDriver::KeepPermit? ZAddressGoodMask : ZAddressCurrentKeepMask;
+  ZAddressbetterMask = ZAddressGoodMask | ZAddressCurrentKeepMask;
+  ZAddressBadMask = (ZAddressGoodMask | ZAddressCurrentKeepMask)^ ZAddressMetadataMask;
+  // ZAddressBadMask = ZDriver::KeepPermit? (ZAddressGoodMask)^ ZAddressMetadataMask : (ZAddressGoodMask | ZAddressCurrentKeepMask)^ ZAddressMetadataMask;
+  ZAddressWeakBadMask = (ZAddressGoodMask | ZAddressMetadataRemapped | ZAddressMetadataFinalizable | ZAddressCurrentKeepMask) ^ ZAddressMetadataMask;
 }
 
 void ZAddress::initialize() {
@@ -47,17 +48,23 @@ void ZAddress::initialize() {
   ZAddressMetadataMarked1 = (uintptr_t)1 << (ZAddressMetadataShift + 1);
   ZAddressMetadataRemapped = (uintptr_t)1 << (ZAddressMetadataShift + 2);
   ZAddressKeepMask = (uintptr_t)1 << (ZAddressMetadataShift + 3);
-  ZAddressMetadataFinalizable = (uintptr_t)1 << (ZAddressMetadataShift + 4);
+  ZAddressAnotherKeepMask = (uintptr_t)1 << (ZAddressMetadataShift + 4);
+  ZAddressMetadataFinalizable = (uintptr_t)1 << (ZAddressMetadataShift + 5);
 
 
   ZAddressMetadataMarked = ZAddressMetadataMarked0;
-  //ZAddressKeepMask = (uintptr_t)7 << (ZAddressMetadataShift + 0);
+  ZAddressCurrentKeepMask = ZAddressKeepMask;
+  ZAddressOneofKeepMask = ZAddressAnotherKeepMask | ZAddressKeepMask;
+
   set_good_mask(ZAddressMetadataRemapped);
 }
 
 void ZAddress::flip_to_marked() {
   ZAddressMetadataMarked ^= (ZAddressMetadataMarked0 | ZAddressMetadataMarked1);
-  ZAddressMetadataKeepMarked = ZAddressMetadataMarked | ZAddressKeepMask;
+  if(ZDriver::KeepPermit){
+      ZAddressCurrentKeepMask ^= (ZAddressKeepMask | ZAddressAnotherKeepMask);
+  }
+  ZAddressMetadataKeepMarked = ZAddressMetadataMarked | ZAddressCurrentKeepMask;
   set_good_mask(ZAddressMetadataMarked);
 }
 

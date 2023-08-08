@@ -60,6 +60,7 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/powerOfTwo.hpp"
 #include "utilities/ticks.hpp"
+#include "zCollectedHeap.hpp"
 
 static const ZStatSubPhase ZSubPhaseConcurrentMark("Concurrent Mark");
 static const ZStatSubPhase ZSubPhaseConcurrentMarkTryFlush("Concurrent Mark Try Flush");
@@ -174,8 +175,10 @@ void ZMark::follow_small_array(uintptr_t addr, size_t size, bool finalizable) {
   const size_t length = size / oopSize;
 
   log_develop_trace(gc, marking)("Array follow small: " PTR_FORMAT " (" SIZE_FORMAT ")", addr, size);
-
-  ZBarrier::mark_barrier_on_oop_array((oop*)addr, length, finalizable);
+  bool keep = false;
+  if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(addr))
+      keep = true;
+  ZBarrier::mark_barrier_on_oop_array((oop*)addr, length, finalizable, keep);
 }
 
 void ZMark::follow_large_array(uintptr_t addr, size_t size, bool finalizable) {
@@ -227,13 +230,14 @@ void ZMark::follow_array(uintptr_t addr, size_t size, bool finalizable) {
 }
 
 void ZMark::follow_partial_array(ZMarkStackEntry entry, bool finalizable) {
-  const uintptr_t addr = ZAddress::good(entry.partial_array_offset() << ZMarkPartialArrayMinSizeShift);
+  const uintptr_t inter_addr = entry.partial_array_offset() << ZMarkPartialArrayMinSizeShift;
+  const uintptr_t addr = ZHeap::heap()->is_object_in_keep(inter_addr)? ZAddress::keep(inter_addr) : ZAddress::good(inter_addr);
   const size_t size = entry.partial_array_length() * oopSize;
 
   follow_array(addr, size, finalizable);
 }
 
-template <bool finalizable>
+template <bool finalizable, bool followkeep>
 class ZMarkBarrierOopClosure : public ClaimMetadataVisitingOopIterateClosure {
 public:
   ZMarkBarrierOopClosure() :
@@ -245,7 +249,7 @@ public:
                                                  : ZHeap::heap()->reference_discoverer()) {}
 
   virtual void do_oop(oop* p) {
-    ZBarrier::mark_barrier_on_oop_field(p, finalizable);
+    ZBarrier::mark_barrier_on_oop_field(p, finalizable, followkeep);
   }
 
   virtual void do_oop(narrowOop* p) {
@@ -255,11 +259,23 @@ public:
 
 void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
   if (finalizable) {
-    ZMarkBarrierOopClosure<true /* finalizable */> cl;
-    cl.do_klass(obj->klass());
+      if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+          ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
+          cl.do_klass(obj->klass());
+      }
+      else{
+          ZMarkBarrierOopClosure<true /* finalizable */, false> cl;
+          cl.do_klass(obj->klass());
+      }
   } else {
-    ZMarkBarrierOopClosure<false /* finalizable */> cl;
-    cl.do_klass(obj->klass());
+      if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+          ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
+          cl.do_klass(obj->klass());
+      }
+      else{
+          ZMarkBarrierOopClosure<false /* finalizable */, false> cl;
+          cl.do_klass(obj->klass());
+      }
   }
 
   const uintptr_t addr = (uintptr_t)obj->base();
@@ -267,19 +283,39 @@ void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
 
   follow_array(addr, size, finalizable);
 }
+//if(ZHeap::heap()->is_object_in_keep(ZOop::to_address(obj)) && ZDriver::KeepPermit){
 
 void ZMark::follow_object(oop obj, bool finalizable) {
   if (finalizable) {
-    ZMarkBarrierOopClosure<true /* finalizable */> cl;
-    obj->oop_iterate(&cl);
+      if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+          ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
+          obj->oop_iterate(&cl);
+      }
+      else{
+          ZMarkBarrierOopClosure<true /* finalizable */, false> cl;
+          obj->oop_iterate(&cl);
+      }
   } else {
-    ZMarkBarrierOopClosure<false /* finalizable */> cl;
-    obj->oop_iterate(&cl);
+      if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+          ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
+          obj->oop_iterate(&cl);
+      }
+      else{
+          ZMarkBarrierOopClosure<false /* finalizable */, false> cl;
+          obj->oop_iterate(&cl);
+      }
+
   }
 }
 
 bool ZMark::try_mark_object(ZMarkCache* cache, uintptr_t addr, bool finalizable) {
   ZPage* const page = _page_table->get(addr);
+
+  /*if(page->is_keep()){
+      log_info(gc, heap)("is keepPage problem?");
+      log_info(gc, heap)("is not keepPage %d", page->is_allocating());
+  }*/
+
   if (page->is_allocating()) {
     // Newly allocated objects are implicitly marked
     return false;
@@ -319,6 +355,9 @@ void ZMark::mark_and_follow(ZMarkCache* cache, ZMarkStackEntry entry) {
   }
 
   if (is_array(addr)) {
+      /*if(ZAddress::is_keep(addr)){
+          int i = 0;
+      }*/
     // Decode follow flag
     const bool follow = entry.follow();
 
@@ -594,7 +633,7 @@ void ZMark::work(uint64_t timeout_in_micros) {
 
 class ZMarkOopClosure : public OopClosure {
   virtual void do_oop(oop* p) {
-    ZBarrier::mark_barrier_on_oop_field(p, false /* finalizable */);
+    ZBarrier::mark_barrier_on_oop_field(p, false /* finalizable */,false);
   }
 
   virtual void do_oop(narrowOop* p) {

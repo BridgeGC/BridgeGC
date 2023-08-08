@@ -389,6 +389,7 @@ void ZPhysicalMemoryManager::pretouch(uintptr_t offset, size_t size) const {
     pretouch_view(ZAddress::marked0(offset), size);
     pretouch_view(ZAddress::marked1(offset), size);
     pretouch_view(ZAddress::keep(offset), size);
+    pretouch_view(ZAddress::anotherkeep(offset), size);
     pretouch_view(ZAddress::remapped(offset), size);
   }
 }
@@ -404,6 +405,7 @@ void ZPhysicalMemoryManager::map(uintptr_t offset, const ZPhysicalMemory& pmem) 
     map_view(ZAddress::marked0(offset), pmem);
     map_view(ZAddress::marked1(offset), pmem);
     map_view(ZAddress::keep(offset), pmem);
+    map_view(ZAddress::anotherkeep(offset), pmem);
     map_view(ZAddress::remapped(offset), pmem);
   }
 
@@ -421,6 +423,7 @@ void ZPhysicalMemoryManager::unmap(uintptr_t offset, size_t size) const {
     unmap_view(ZAddress::marked0(offset), size);
     unmap_view(ZAddress::marked1(offset), size);
     unmap_view(ZAddress::keep(offset), size);
+    unmap_view(ZAddress::anotherkeep(offset), size);
     unmap_view(ZAddress::remapped(offset), size);
   }
 }

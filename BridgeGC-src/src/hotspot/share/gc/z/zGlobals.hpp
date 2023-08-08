@@ -96,6 +96,9 @@ extern uintptr_t  ZAddressbetterMask;
 extern uintptr_t  ZAddressBadMask;
 extern uintptr_t  ZAddressWeakBadMask;
 extern uintptr_t  ZAddressKeepMask;
+extern uintptr_t  ZAddressCurrentKeepMask;
+extern uintptr_t  ZAddressAnotherKeepMask;
+extern uintptr_t  ZAddressOneofKeepMask;
 extern uintptr_t  ZAddressGoodKeepMask;
 
 // The bad mask is 64 bit. Its high order 32 bits contain all possible value combinations
@@ -112,7 +115,7 @@ extern uintptr_t  ZAddressOffsetMask;
 extern size_t     ZAddressOffsetMax;
 
 // Metadata part of address
-const size_t      ZAddressMetadataBits          = 5;
+const size_t      ZAddressMetadataBits          = 6;
 extern size_t     ZAddressMetadataShift;
 extern uintptr_t  ZAddressMetadataMask;
 extern uintptr_t  ZAddressFullMask;

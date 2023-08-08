@@ -1494,12 +1494,12 @@ class LIR_OpAllocObj : public LIR_Op1 {
   int     _obj_size;
   CodeStub* _stub;
   bool    _init_check;
-  int _alloc_gen;
+  bool _annotated;
 
  public:
   LIR_OpAllocObj(LIR_Opr klass, LIR_Opr result,
                  LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4,
-                 int hdr_size, int obj_size, bool init_check, CodeStub* stub, int alloc_gen)
+                 int hdr_size, int obj_size, bool init_check, CodeStub* stub, bool annotated)
     : LIR_Op1(lir_alloc_object, klass, result)
     , _tmp1(t1)
     , _tmp2(t2)
@@ -1509,7 +1509,7 @@ class LIR_OpAllocObj : public LIR_Op1 {
     , _obj_size(obj_size)
     , _stub(stub)
     , _init_check(init_check)
-    , _alloc_gen(alloc_gen){ }
+    , _annotated(annotated){ }
 
   LIR_Opr klass()        const                   { return in_opr();     }
   LIR_Opr obj()          const                   { return result_opr(); }
@@ -1521,7 +1521,7 @@ class LIR_OpAllocObj : public LIR_Op1 {
   int     object_size()  const                   { return _obj_size;    }
   bool    init_check()   const                   { return _init_check;  }
   CodeStub* stub()       const                   { return _stub;        }
-  int     alloc_gen()    const                   { return _alloc_gen;   }
+  int     annotated()    const                   { return _annotated;   }
 
   virtual void emit_code(LIR_Assembler* masm);
   virtual LIR_OpAllocObj * as_OpAllocObj () { return this; }
@@ -1718,10 +1718,10 @@ class LIR_OpAllocArray : public LIR_Op {
   LIR_Opr   _tmp4;
   BasicType _type;
   CodeStub* _stub;
-  int _alloc_gen;
+  bool _annotated;
 
  public:
-  LIR_OpAllocArray(LIR_Opr klass, LIR_Opr len, LIR_Opr result, LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4, BasicType type, CodeStub* stub, int alloc_gen)
+  LIR_OpAllocArray(LIR_Opr klass, LIR_Opr len, LIR_Opr result, LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4, BasicType type, CodeStub* stub, bool annotated)
     : LIR_Op(lir_alloc_array, result, NULL)
     , _klass(klass)
     , _len(len)
@@ -1731,7 +1731,7 @@ class LIR_OpAllocArray : public LIR_Op {
     , _tmp4(t4)
     , _type(type)
     , _stub(stub)
-    , _alloc_gen(alloc_gen){}
+    , _annotated(annotated){}
 
   LIR_Opr   klass()   const                      { return _klass;       }
   LIR_Opr   len()     const                      { return _len;         }
@@ -1742,7 +1742,7 @@ class LIR_OpAllocArray : public LIR_Op {
   LIR_Opr   tmp4()    const                      { return _tmp4;        }
   BasicType type()    const                      { return _type;        }
   CodeStub* stub()    const                      { return _stub;        }
-  int  alloc_gen()    const                      { return _alloc_gen;   }
+  int  annotated()    const                      { return _annotated;   }
 
   virtual void emit_code(LIR_Assembler* masm);
   virtual LIR_OpAllocArray * as_OpAllocArray () { return this; }
@@ -2188,8 +2188,8 @@ class LIR_List: public CompilationResourceObj {
   void irem(LIR_Opr left, LIR_Opr right, LIR_Opr res, LIR_Opr tmp, CodeEmitInfo* info);
   void irem(LIR_Opr left, int   right, LIR_Opr res, LIR_Opr tmp, CodeEmitInfo* info);
 
-  void allocate_object(LIR_Opr dst, LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4, int header_size, int object_size, LIR_Opr klass, bool init_check, CodeStub* stub, int alloc_gen);
-  void allocate_array(LIR_Opr dst, LIR_Opr len, LIR_Opr t1,LIR_Opr t2, LIR_Opr t3,LIR_Opr t4, BasicType type, LIR_Opr klass, CodeStub* stub, int alloc_gen);
+  void allocate_object(LIR_Opr dst, LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4, int header_size, int object_size, LIR_Opr klass, bool init_check, CodeStub* stub, bool annotated);
+  void allocate_array(LIR_Opr dst, LIR_Opr len, LIR_Opr t1,LIR_Opr t2, LIR_Opr t3,LIR_Opr t4, BasicType type, LIR_Opr klass, CodeStub* stub, bool annotated);
 
   // jump is an unconditional branch
   void jump(BlockBegin* block) {

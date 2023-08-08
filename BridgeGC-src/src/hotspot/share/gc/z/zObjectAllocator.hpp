@@ -72,7 +72,7 @@ private:
 public:
   ZObjectAllocator();
 
-  uintptr_t alloc_object(size_t size, int alloc_gen);
+  uintptr_t alloc_object(size_t size, bool annotated);
   uintptr_t alloc_tklab(size_t size);
   uintptr_t alloc_object_non_blocking(size_t size);
   uintptr_t alloc_keep_object_non_blocking(size_t size);

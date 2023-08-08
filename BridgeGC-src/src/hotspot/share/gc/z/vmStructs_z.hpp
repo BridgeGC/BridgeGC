@@ -49,7 +49,8 @@ public:
   uintptr_t* _ZAddressBadMask;
   uintptr_t* _ZAddressWeakBadMask;
   uintptr_t* _ZAddressKeepMask;
-  uintptr_t* _ZAddressGoodKeepMask;
+  uintptr_t* _ZAddressAnotherKeepMask;
+  uintptr_t* _ZAddressCurrentKeepMask;
 
   const int* _ZObjectAlignmentSmallShift;
   const int* _ZObjectAlignmentSmall;

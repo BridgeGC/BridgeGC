@@ -1162,9 +1162,9 @@ bool PhaseMacroExpand::eliminate_boxing_node(CallStaticJavaNode *boxing) {
 }
 
 //---------------------------set_eden_pointers-------------------------
-void PhaseMacroExpand::set_eden_pointers(Node* &eden_top_adr, Node* &eden_end_adr, int alloc_gen) {
+void PhaseMacroExpand::set_eden_pointers(Node* &eden_top_adr, Node* &eden_end_adr, bool annotated) {
   if (UseTLAB) {                // Private allocation: load from TLS
-    if(alloc_gen == 1){
+    if(annotated){
         //log_info(gc, heap)("C2 TKLAB Allocation!");
         Node* thread = transform_later(new ThreadLocalNode());
         int tklab_top_offset = in_bytes(JavaThread::tklab_top_offset());
@@ -1259,58 +1259,6 @@ Node* PhaseMacroExpand::make_store(Node* ctl, Node* mem, Node* base, int offset,
 // slow-path call.
 //
 
-int PhaseMacroExpand::get_alloc_gen_2(Array<u2>* aac, int bci) {
-    if (aac != NULL) {
-        return 1;
-    }
-    return 0;
-    /*if(aac != NULL) {
-
-        AnnotationArray* aa = method->type_annotations();
-        // ConstantPool* pool = method->constants();
-
-        u1* data = aa->data();
-
-        // Get short (# of annotations)
-        u2 n_anno =Bytes::get_Java_u2(data);
-
-        data += 2;
-        for (u2 i = 0; i < n_anno; i++) {
-//            // byte target type (should be 68 == 0x44 == NEW)
-            // u1 anno_target = *data;
-//            // Get short (location, should be bci)
-            u2 anno_bci = Bytes::get_Java_u2(data + 1);
-            // byte loc data size (should be zero)
-            u1 dsize = *(data + 3);
-            // Note: after the previous byte comes 'dsize'*2 bytes of location data.
-            // Get short (type index in constant pool, should be Old)
-            //u2 anno_type_index = Bytes::get_Java_u2(data + 4 + dsize*2);
-            // Get char* (type name, should be Ljava/lang/Gen;)
-            //Symbol* type_name = pool->symbol_at(anno_type_index);
-
-            // Note: If anno_bco == bci, then they both point to the same bc. In this
-            // situation there is no need to fix the bci. Only if they differ, we
-            // should look into the size of make sure that both bcis are a match.
-            int anno_bc_len = 0;
-
-            for (int i = 0; i < n_dims; i++) {
-                anno_bc_len += Bytecodes::length_for(Bytecodes::code_at(method, anno_bci + anno_bc_len));
-            }
-
-
-            if ((anno_bci+anno_bc_len) == bci) {
-                aac->at_put(next_centry, bci); // Storing in cache.
-                return 1;
-            }
-            // <underscore> 8 is the number of bytes used a alloc annotation.
-            // <underscore> Note: I'm assuming the annotation has no elements!
-            data += 8 + dsize*2;
-        }
-    }
-
-    return alloc_gen;*/
-}
-
 void PhaseMacroExpand::expand_allocate_common(
             AllocateNode* alloc, // allocation node to be expanded
             Node* length,  // array length for an array allocation
@@ -1318,15 +1266,7 @@ void PhaseMacroExpand::expand_allocate_common(
             address slow_call_address  // Address of slow call
     )
 {
-    /*int bci = alloc->jvms()->bci();
-    Method* m = alloc->jvms()->method()->get_Method();*/
-    // char* methodname = alloc->jvms()->method()->get_Method()->name_and_sig_as_C_string();
-    int alloc_gen = alloc->jvms()->method()->get_Method()->alloc_anno() == NULL ? 0 : 1;
-    // int alloc_gen = get_alloc_gen_2(alloc->jvms()->method()->get_Method()->alloc_anno_cache(), alloc->jvms()->bci());
-    /*if(length == NULL)
-        alloc_gen = get_alloc_gen_2(m, bci, 0);
-    else
-        alloc_gen = get_alloc_gen_2(m, bci, 1);*/
+    bool annotated = alloc->jvms()->method()->get_Method()->is_annotated();
 
   Node* ctrl = alloc->in(TypeFunc::Control);
   Node* mem  = alloc->in(TypeFunc::Memory);
@@ -1457,7 +1397,7 @@ void PhaseMacroExpand::expand_allocate_common(
       BarrierSetC2* bs = BarrierSet::barrier_set()->barrier_set_c2();
       Node* fast_oop = bs->obj_allocate(this, ctrl, mem, toobig_false, size_in_bytes, i_o, needgc_ctrl,
                                         fast_oop_ctrl, fast_oop_rawmem,
-                                        prefetch_lines, alloc_gen);
+                                        prefetch_lines, annotated);
 
       if (initial_slow_test != NULL) {
         // This completes all paths into the slow merge point
@@ -1507,10 +1447,10 @@ void PhaseMacroExpand::expand_allocate_common(
   call->init_req(TypeFunc::Parms+0, klass_node);
   if (length != NULL) {
     call->init_req(TypeFunc::Parms+2, length);
-    call->init_req(TypeFunc::Parms+1, intcon(alloc_gen));
+    call->init_req(TypeFunc::Parms+1, intcon(annotated));
   }
   else{
-    call->init_req(TypeFunc::Parms+1, intcon(alloc_gen));
+    call->init_req(TypeFunc::Parms+1, intcon(annotated));
   }
 
   // Copy debug information and adjust JVMState information, then replace
@@ -1845,7 +1785,7 @@ PhaseMacroExpand::initialize_object(AllocateNode* alloc,
 Node* PhaseMacroExpand::prefetch_allocation(Node* i_o, Node*& needgc_false,
                                         Node*& contended_phi_rawmem,
                                         Node* old_eden_top, Node* new_eden_top,
-                                        intx lines, int alloc_gen) {
+                                        intx lines, bool annotated) {
    enum { fall_in_path = 1, pf_path = 2 };
    if( UseTLAB && AllocatePrefetchStyle == 2 ) {
       // Generate prefetch allocation with watermark check.
@@ -1861,7 +1801,7 @@ Node* PhaseMacroExpand::prefetch_allocation(Node* i_o, Node*& needgc_false,
       Node *thread = new ThreadLocalNode();
       transform_later(thread);
       Node *eden_pf_adr;
-      if(alloc_gen == 1){
+      if(annotated){
            eden_pf_adr = new AddPNode( top()/*not oop*/, thread,
                                        _igvn.MakeConX(in_bytes(JavaThread::tklab_pf_top_offset())) );
       }

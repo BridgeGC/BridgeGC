@@ -80,7 +80,7 @@ void ZBarrierSet::on_thread_destroy(Thread* thread) {
 void ZBarrierSet::on_thread_attach(Thread* thread) {
   // Set thread local address bad mask
   ZThreadLocalData::set_address_bad_mask(thread, ZAddressBadMask);
-  // ZThreadLocalData::set_address_keep_mask(thread, ZAddressGoodMask);
+  ZThreadLocalData::set_address_keep_mask(thread, ZAddressOneofKeepMask);
   if (thread->is_Java_thread()) {
     JavaThread* const jt = thread->as_Java_thread();
     StackWatermark* const watermark = new ZStackWatermark(jt);

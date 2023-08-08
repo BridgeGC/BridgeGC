@@ -212,20 +212,20 @@ void NewInstanceStub::emit_code(LIR_Assembler* ce) {
 
 // Implementation of NewTypeArrayStub
 
-NewTypeArrayStub::NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, int alloc_gen) {
+NewTypeArrayStub::NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, bool annotated) {
   _klass_reg = klass_reg;
   _length = length;
   _result = result;
   _info = new CodeEmitInfo(info);
-  _alloc_gen = alloc_gen;
+  _annotated = annotated;
 }
 
-NewTypeKeepArrayStub::NewTypeKeepArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, int alloc_gen) {
+NewTypeKeepArrayStub::NewTypeKeepArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, bool annotated) {
     _klass_reg = klass_reg;
     _length = length;
     _result = result;
     _info = new CodeEmitInfo(info);
-    _alloc_gen = alloc_gen;
+    _annotated = annotated;
 }
 
 

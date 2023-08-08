@@ -668,7 +668,7 @@ void LIRGenerator::print_if_not_loaded(const NewInstance* new_instance) {
 }
 #endif
 
-void LIRGenerator::new_instance(LIR_Opr dst, ciInstanceKlass* klass, bool is_unresolved, LIR_Opr scratch1, LIR_Opr scratch2, LIR_Opr scratch3, LIR_Opr scratch4, LIR_Opr klass_reg, CodeEmitInfo* info, int alloc_gen) {
+void LIRGenerator::new_instance(LIR_Opr dst, ciInstanceKlass* klass, bool is_unresolved, LIR_Opr scratch1, LIR_Opr scratch2, LIR_Opr scratch3, LIR_Opr scratch4, LIR_Opr klass_reg, CodeEmitInfo* info, bool annotated) {
   klass2reg_with_patching(klass_reg, klass, info, is_unresolved);
   // If klass is not loaded we do not know if the klass has finalizers:
   if (UseFastNewInstance && klass->is_loaded()
@@ -676,7 +676,7 @@ void LIRGenerator::new_instance(LIR_Opr dst, ciInstanceKlass* klass, bool is_unr
 
     Runtime1::StubID stub_id = klass->is_initialized() ? Runtime1::fast_new_instance_id : Runtime1::fast_new_instance_init_check_id;
 
-    stub_id = alloc_gen==1?Runtime1::new_keep_instance_id:stub_id;
+    stub_id = annotated?Runtime1::new_keep_instance_id:stub_id;
 
     CodeStub* slow_path = new NewInstanceStub(klass_reg, dst, klass, info, stub_id);
 
@@ -685,10 +685,10 @@ void LIRGenerator::new_instance(LIR_Opr dst, ciInstanceKlass* klass, bool is_unr
     assert(klass->size_helper() >= 0, "illegal instance size");
     const int instance_size = align_object_size(klass->size_helper());
     __ allocate_object(dst, scratch1, scratch2, scratch3, scratch4,
-                       oopDesc::header_size(), instance_size, klass_reg, !klass->is_initialized(), slow_path, alloc_gen);
+                       oopDesc::header_size(), instance_size, klass_reg, !klass->is_initialized(), slow_path, annotated);
   } else {
       CodeStub* slow_path;
-      if(alloc_gen == 1)
+      if(annotated)
           slow_path = new NewInstanceStub(klass_reg, dst, klass, info, Runtime1::new_keep_instance_id);
       else
           slow_path = new NewInstanceStub(klass_reg, dst, klass, info, Runtime1::new_instance_id);

@@ -32,18 +32,24 @@
 // +1 for NULL singular entry.
 OopStorage* OopStorageSet::storages[all_count + 1] = {};
 
-OopStorage* OopStorageSet::create_strong(const char* name) {
+OopStorage* OopStorageSet::create_strong(const char* name, bool type) {
   static uint registered_strong = 0;
   assert(registered_strong < strong_count, "More registered strong storages than slots");
-  OopStorage* storage = new OopStorage(name);
+  OopStorage* storage = new OopStorage(name, type);
   storages[strong_start + registered_strong++] = storage;
   return storage;
+}
+
+OopStorage* OopStorageSet::recreate_strong(const char* name, bool type) {
+    OopStorage* storage = new OopStorage(name, type);
+    storages[strong_start + 4] = storage;
+    return storage;
 }
 
 OopStorage* OopStorageSet::create_weak(const char* name) {
   static uint registered_weak = 0;
   assert(registered_weak < weak_count, "More registered strong storages than slots");
-  OopStorage* storage = new OopStorage(name);
+  OopStorage* storage = new OopStorage(name,false);
   storages[weak_start + registered_weak++] = storage;
   return storage;
 }
@@ -70,7 +76,7 @@ void OopStorageSet::fill_all(OopStorage* to[all_count]) {
 #ifdef ASSERT
 
 void OopStorageSet::verify_initialized(uint index) {
-  assert(storages[index] != NULL, "oopstorage_init not yet called");
+  // assert(storages[index] != NULL, "oopstorage_init not yet called");
 }
 
 void OopStorageSet::Iterator::verify_nonsingular() const {

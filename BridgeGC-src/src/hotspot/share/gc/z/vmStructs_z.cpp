@@ -31,7 +31,8 @@ ZGlobalsForVMStructs::ZGlobalsForVMStructs() :
     _ZAddressBadMask(&ZAddressBadMask),
     _ZAddressWeakBadMask(&ZAddressWeakBadMask),
     _ZAddressKeepMask(&ZAddressKeepMask),
-    _ZAddressGoodKeepMask(&ZAddressGoodKeepMask),
+    _ZAddressAnotherKeepMask(&ZAddressAnotherKeepMask),
+    _ZAddressCurrentKeepMask(&ZAddressCurrentKeepMask),
     _ZObjectAlignmentSmallShift(&ZObjectAlignmentSmallShift),
     _ZObjectAlignmentSmall(&ZObjectAlignmentSmall) {
 }

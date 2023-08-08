@@ -2995,7 +2995,7 @@ Method* ClassFileParser::parse_method(const ClassFileStream* const cfs,
             data += 8 + dsize*2;
         }
         if(shouldkeep){
-            m->set_alloc_anno(m->constMethod()->type_annotations());
+            m->annotated(shouldkeep, aa);
         }
     }
 

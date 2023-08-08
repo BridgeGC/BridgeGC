@@ -25,14 +25,34 @@
 #include "gc/z/zBarrier.inline.hpp"
 #include "gc/z/zBarrierSetRuntime.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
+#include "zCollectedHeap.hpp"
 
 JRT_LEAF(oopDesc*, ZBarrierSetRuntime::load_barrier_on_oop_field_preloaded(oopDesc* o, oop* p))
   return ZBarrier::load_barrier_on_oop_field_preloaded(p, o);
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::check_value(oopDesc* o, oop* p))
-    if(ZAddress::is_keep(ZOop::to_address(o))){
-        log_info(gc, heap)("Skip Load:");
+    if(o!=NULL){
+        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+        ZCollectedHeap::set_keepObj(p);
+        // log_info(gc, heap)("C0: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+    }
+JRT_END
+
+JRT_LEAF(void, ZBarrierSetRuntime::check_c1_value(oopDesc* o, oop* p))
+    if(o!=NULL){
+        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+        // log_info(gc, heap)("C1: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+        ZCollectedHeap::set_keepObj(p);
+    }
+
+JRT_END
+
+JRT_LEAF(void, ZBarrierSetRuntime::check_c2_value(oopDesc* o, oop* p))
+    if(o!=NULL){
+        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+        // log_info(gc, heap)("C2: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+        ZCollectedHeap::set_keepObj(p);
     }
 JRT_END
 
@@ -58,9 +78,6 @@ JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::load_barrier_on_oop_array(oop* p, size_t length))
   ZBarrier::load_barrier_on_oop_array(p, length);
-  /*if(ZAddress::is_keep(ZOop::to_address(*p))){
-      log_info(gc, heap)("Array Barrier:");
-  }*/
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::clone(oopDesc* src, oopDesc* dst, size_t size))
@@ -123,4 +140,12 @@ address ZBarrierSetRuntime::clone_addr() {
 
 address ZBarrierSetRuntime::check_address_value(){
     return reinterpret_cast<address>(check_value);
+}
+
+address ZBarrierSetRuntime::check_c1_address_value(){
+    return reinterpret_cast<address>(check_c1_value);
+}
+
+address ZBarrierSetRuntime::check_c2_address_value(){
+    return reinterpret_cast<address>(check_c2_value);
 }

@@ -43,11 +43,14 @@ public:
   static bool is_good(uintptr_t value);
   static bool is_pure_good(uintptr_t value);
   static bool is_keep(uintptr_t value);
+  static bool is_oneof_keep(uintptr_t value);
+  static bool is_current_keep(uintptr_t value);
   static bool is_good_or_null(uintptr_t value);
   static bool is_weak_bad(uintptr_t value);
   static bool is_weak_good(uintptr_t value);
   static bool is_weak_good_or_null(uintptr_t value);
   static bool is_marked(uintptr_t value);
+  static bool is_pure_marked(uintptr_t value);
   static bool is_marked_or_null(uintptr_t value);
   static bool is_finalizable(uintptr_t value);
   static bool is_finalizable_good(uintptr_t value);
@@ -59,6 +62,8 @@ public:
   static uintptr_t good(uintptr_t value);
   static uintptr_t goodOrKeep(uintptr_t value);
   static uintptr_t keep(uintptr_t value);
+  static uintptr_t anotherkeep(uintptr_t value);
+  static uintptr_t currentkeep(uintptr_t value);
   static uintptr_t good_or_null(uintptr_t value);
   static uintptr_t keep_or_null(uintptr_t value);
   static uintptr_t finalizable_good(uintptr_t value);

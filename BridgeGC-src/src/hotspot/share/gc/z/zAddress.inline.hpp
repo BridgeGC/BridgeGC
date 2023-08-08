@@ -50,6 +50,14 @@ inline bool ZAddress::is_keep(uintptr_t value) {
     return value & ZAddressKeepMask;
 }
 
+inline bool ZAddress::is_oneof_keep(uintptr_t value) {
+    return value & ZAddressOneofKeepMask;
+}
+
+inline bool ZAddress::is_current_keep(uintptr_t value) {
+    return value & ZAddressCurrentKeepMask;
+}
+
 inline bool ZAddress::is_good_or_null(uintptr_t value) {
   // Checking if an address is "not bad" is an optimized version of
   // checking if it's "good or null", which eliminates an explicit
@@ -79,6 +87,10 @@ inline bool ZAddress::is_marked(uintptr_t value) {
   return value & ZAddressMetadataKeepMarked;
 }
 
+inline bool ZAddress::is_pure_marked(uintptr_t value) {
+    return value & ZAddressMetadataMarked;
+}
+
 inline bool ZAddress::is_marked_or_null(uintptr_t value) {
   return is_marked(value) || is_null(value);
 }
@@ -97,9 +109,9 @@ inline bool ZAddress::is_remapped(uintptr_t value) {
 
 inline bool ZAddress:: is_in(uintptr_t value) {
   // Check that exactly one non-offset bit is set
-  /*if (!is_power_of_2(value & ~ZAddressOffsetMask)) {
+  if (!is_power_of_2(value & ~ZAddressOffsetMask)) {
     return false;
-  }*/
+  }
 
   // Check that one of the non-finalizable metadata is set
   return value & (ZAddressMetadataMask & ~ZAddressMetadataFinalizable);
@@ -114,11 +126,19 @@ inline uintptr_t ZAddress::good(uintptr_t value) {
 }
 
 inline uintptr_t ZAddress::goodOrKeep(uintptr_t value) {
-    return offset(value) | ZAddressGoodKeepMask;
+    return offset(value) | ZAddressCurrentKeepMask;
 }
 
 inline uintptr_t ZAddress::keep(uintptr_t value) {
     return offset(value) | ZAddressKeepMask;
+}
+
+inline uintptr_t ZAddress::anotherkeep(uintptr_t value) {
+    return offset(value) | ZAddressAnotherKeepMask;
+}
+
+inline uintptr_t ZAddress::currentkeep(uintptr_t value) {
+    return offset(value) | ZAddressCurrentKeepMask;
 }
 
 inline uintptr_t ZAddress::good_or_null(uintptr_t value) {
@@ -126,7 +146,7 @@ inline uintptr_t ZAddress::good_or_null(uintptr_t value) {
 }
 
 inline uintptr_t ZAddress::keep_or_null(uintptr_t value) {
-  return is_null(value) ? 0 : goodOrKeep(value);
+  return is_null(value) ? 0 : keep(value);
 }
 
 inline uintptr_t ZAddress::finalizable_good(uintptr_t value) {

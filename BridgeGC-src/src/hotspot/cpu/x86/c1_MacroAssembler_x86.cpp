@@ -147,9 +147,9 @@ void C1_MacroAssembler::unlock_object(Register hdr, Register obj, Register disp_
 
 
 // Defines obj, preserves var_size_in_bytes
-void C1_MacroAssembler::try_allocate(Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Register t2, Label& slow_case, int alloc_gen) {
+void C1_MacroAssembler::try_allocate(Register obj, Register var_size_in_bytes, int con_size_in_bytes, Register t1, Register t2, Label& slow_case, bool annotated) {
   if (UseTLAB) {
-      if(alloc_gen)
+      if(annotated)
           tklab_allocate(noreg, obj, var_size_in_bytes, con_size_in_bytes, t1, t2, slow_case);
       else
           tlab_allocate(noreg, obj, var_size_in_bytes, con_size_in_bytes, t1, t2, slow_case);
@@ -206,12 +206,12 @@ void C1_MacroAssembler::initialize_body(Register obj, Register len_in_bytes, int
 }
 
 
-void C1_MacroAssembler::allocate_object(Register obj, Register t1, Register t2, int header_size, int object_size, Register klass, Label& slow_case, int alloc_gen) {
+void C1_MacroAssembler::allocate_object(Register obj, Register t1, Register t2, int header_size, int object_size, Register klass, Label& slow_case, bool annotated) {
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, t1, t2); // XXX really?
   assert(header_size >= 0 && object_size >= header_size, "illegal sizes");
 
-  try_allocate(obj, noreg, object_size * BytesPerWord, t1, t2, slow_case ,alloc_gen);
+  try_allocate(obj, noreg, object_size * BytesPerWord, t1, t2, slow_case ,annotated);
 
   initialize_object(obj, klass, noreg, object_size * HeapWordSize, t1, t2, UseTLAB);
 }
@@ -267,7 +267,7 @@ void C1_MacroAssembler::initialize_object(Register obj, Register klass, Register
   verify_oop(obj);
 }
 
-void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, Register t2, int header_size, Address::ScaleFactor f, Register klass, Label& slow_case, int alloc_gen) {
+void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, Register t2, int header_size, Address::ScaleFactor f, Register klass, Label& slow_case, bool annotated) {
   assert(obj == rax, "obj must be in rax, for cmpxchg");
   assert_different_registers(obj, len, t1, t2, klass);
 
@@ -284,7 +284,7 @@ void C1_MacroAssembler::allocate_array(Register obj, Register len, Register t1, 
   lea(arr_size, Address(arr_size, len, f));
   andptr(arr_size, ~MinObjAlignmentInBytesMask);
 
-  try_allocate(obj, arr_size, 0, t1, t2, slow_case, alloc_gen);
+  try_allocate(obj, arr_size, 0, t1, t2, slow_case, annotated);
 
   initialize_header(obj, klass, len, t1, t2);
 

@@ -30,14 +30,14 @@
 #include "oops/oop.inline.hpp"
 #include "utilities/align.hpp"
 
-inline oop CollectedHeap::obj_allocate(Klass* klass, int alloc_gen, int size, TRAPS) {
+inline oop CollectedHeap::obj_allocate(Klass* klass, bool annotated, int size, TRAPS) {
   ObjAllocator allocator(klass, size, THREAD);
-  return allocator.allocate(alloc_gen);
+  return allocator.allocate(annotated);
 }
 
-inline oop CollectedHeap::array_allocate(Klass* klass, int alloc_gen, int size, int length, bool do_zero, TRAPS) {
+inline oop CollectedHeap::array_allocate(Klass* klass, bool annotated, int size, int length, bool do_zero, TRAPS) {
   ObjArrayAllocator allocator(klass, size, length, do_zero, THREAD);
-  return allocator.allocate(alloc_gen);
+  return allocator.allocate(annotated);
 }
 
 inline oop CollectedHeap::class_allocate(Klass* klass, int size, TRAPS) {

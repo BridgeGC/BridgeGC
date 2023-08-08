@@ -174,7 +174,7 @@ class ParallelScavengeHeap : public CollectedHeap {
   // an excessive amount of time is being spent doing collections
   // and caused a NULL to be returned.  If a NULL is not returned,
   // "gc_time_limit_was_exceeded" has an undefined meaning.
-  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, int alloc_gen);
+  HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, bool annotated);
 
   // Allocation attempt(s) during a safepoint. It should never be called
   // to allocate a new TLAB as this allocation might be satisfied out

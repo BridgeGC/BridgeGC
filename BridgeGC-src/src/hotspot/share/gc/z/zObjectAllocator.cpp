@@ -202,9 +202,9 @@ uintptr_t ZObjectAllocator::alloc_object(size_t size, ZAllocationFlags flags) {
   }
 }
 
-uintptr_t ZObjectAllocator::alloc_object(size_t size, int alloc_gen) {
+uintptr_t ZObjectAllocator::alloc_object(size_t size, bool annotated) {
   ZAllocationFlags flags;
-  if(alloc_gen)
+  if(annotated)
     flags.set_Keep_alloc();
   return alloc_object(size, flags);
 }

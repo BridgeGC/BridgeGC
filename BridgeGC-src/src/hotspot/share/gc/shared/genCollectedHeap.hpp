@@ -196,7 +196,7 @@ public:
 
   size_t max_capacity() const;
 
-  HeapWord* mem_allocate(size_t size, bool*  gc_overhead_limit_was_exceeded, int alloc_gen);
+  HeapWord* mem_allocate(size_t size, bool*  gc_overhead_limit_was_exceeded, bool annotated);
 
   // We may support a shared contiguous allocation area, if the youngest
   // generation does.

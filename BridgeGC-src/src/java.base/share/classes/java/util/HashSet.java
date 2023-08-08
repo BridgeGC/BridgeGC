@@ -97,7 +97,7 @@ public class HashSet<E>
     private transient HashMap<E,Object> map;
 
     // Dummy value to associate with an Object in the backing Map
-    private static final Object PRESENT = new Object();
+    private final static Object PRESENT = new @DataObj Object();
 
     /**
      * Constructs a new, empty set; the backing {@code HashMap} instance has
@@ -160,6 +160,7 @@ public class HashSet<E>
      */
     public HashSet(HashMap<E,Object> testarray) {
         map = testarray;
+        // PRESENT = new @DataObj Object();
     }
 	
     /**
@@ -172,7 +173,17 @@ public class HashSet<E>
      */
     public HashSet(int initialCapacity) {
         map = new HashMap<>(initialCapacity);
+        // change();
     }
+
+    /**
+     * Constructs a new, empty set; the backing {@code HashMap} instance has
+     * the specified initial capacity and default load factor (0.75).
+     *
+     */
+//     public void change(){
+//         PRESENT = new @DataObj Object();
+//     }
 
     /**
      * Constructs a new, empty linked hash set.  (This package private

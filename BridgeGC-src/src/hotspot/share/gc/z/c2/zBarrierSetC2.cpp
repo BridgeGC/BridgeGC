@@ -46,16 +46,22 @@
 class ZBarrierSetC2State : public ResourceObj {
 private:
   GrowableArray<ZLoadBarrierStubC2*>* _stubs;
+  GrowableArray<ZKeepBarrierStubC2*>* _keep_stubs;
   Node_Array                          _live;
 
 public:
   ZBarrierSetC2State(Arena* arena) :
     _stubs(new (arena) GrowableArray<ZLoadBarrierStubC2*>(arena, 8,  0, NULL)),
+    _keep_stubs(new (arena) GrowableArray<ZKeepBarrierStubC2*>(arena, 8,  0, NULL)),
     _live(arena) {}
 
   GrowableArray<ZLoadBarrierStubC2*>* stubs() {
     return _stubs;
   }
+
+    GrowableArray<ZKeepBarrierStubC2*>* keep_stubs() {
+        return _keep_stubs;
+    }
 
   RegMask* live(const Node* node) {
     if (!node->is_Mach()) {
@@ -92,6 +98,15 @@ ZLoadBarrierStubC2* ZLoadBarrierStubC2::create(const MachNode* node, Address ref
   return stub;
 }
 
+ZKeepBarrierStubC2* ZKeepBarrierStubC2::create(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data) {
+    ZKeepBarrierStubC2* const stub = new (Compile::current()->comp_arena()) ZKeepBarrierStubC2(node, ref_addr, ref, tmp, barrier_data);
+    if (!Compile::current()->output()->in_scratch_emit_size()) {
+        barrier_set_state()->keep_stubs()->append(stub);
+    }
+
+    return stub;
+}
+
 ZLoadBarrierStubC2::ZLoadBarrierStubC2(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data) :
     _node(node),
     _ref_addr(ref_addr),
@@ -104,6 +119,18 @@ ZLoadBarrierStubC2::ZLoadBarrierStubC2(const MachNode* node, Address ref_addr, R
   assert_different_registers(ref, ref_addr.index());
 }
 
+ZKeepBarrierStubC2::ZKeepBarrierStubC2(const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data) :
+        _node(node),
+        _ref_addr(ref_addr),
+        _ref(ref),
+        _tmp(tmp),
+        _barrier_data(barrier_data),
+        _entry(),
+        _continuation() {
+    // assert_different_registers(ref, ref_addr.base());
+    // assert_different_registers(ref, ref_addr.index());
+}
+
 Address ZLoadBarrierStubC2::ref_addr() const {
   return _ref_addr;
 }
@@ -114,6 +141,18 @@ Register ZLoadBarrierStubC2::ref() const {
 
 Register ZLoadBarrierStubC2::tmp() const {
   return _tmp;
+}
+
+Address ZKeepBarrierStubC2::ref_addr() const {
+    return _ref_addr;
+}
+
+Register ZKeepBarrierStubC2::ref() const {
+    return _ref;
+}
+
+Register ZKeepBarrierStubC2::tmp() const {
+    return _tmp;
 }
 
 address ZLoadBarrierStubC2::slow_path() const {
@@ -133,8 +172,16 @@ address ZLoadBarrierStubC2::slow_path() const {
   return ZBarrierSetRuntime::load_barrier_on_oop_field_preloaded_addr(decorators);
 }
 
+address ZKeepBarrierStubC2::slow_path() const {
+    return ZBarrierSetRuntime::check_c2_address_value();
+}
+
 RegMask& ZLoadBarrierStubC2::live() const {
   return *barrier_set_state()->live(_node);
+}
+
+RegMask& ZKeepBarrierStubC2::live() const {
+    return *barrier_set_state()->live(_node);
 }
 
 Label* ZLoadBarrierStubC2::entry() {
@@ -145,8 +192,20 @@ Label* ZLoadBarrierStubC2::entry() {
   return Compile::current()->output()->in_scratch_emit_size() ? &_continuation : &_entry;
 }
 
+Label* ZKeepBarrierStubC2::entry() {
+    // The _entry will never be bound when in_scratch_emit_size() is true.
+    // However, we still need to return a label that is not bound now, but
+    // will eventually be bound. Any lable will do, as it will only act as
+    // a placeholder, so we return the _continuation label.
+    return Compile::current()->output()->in_scratch_emit_size() ? &_continuation : &_entry;
+}
+
 Label* ZLoadBarrierStubC2::continuation() {
   return &_continuation;
+}
+
+Label* ZKeepBarrierStubC2::continuation() {
+    return &_continuation;
 }
 
 void* ZBarrierSetC2::create_barrier_state(Arena* comp_arena) const {
@@ -161,6 +220,7 @@ void ZBarrierSetC2::late_barrier_analysis() const {
 void ZBarrierSetC2::emit_stubs(CodeBuffer& cb) const {
   MacroAssembler masm(&cb);
   GrowableArray<ZLoadBarrierStubC2*>* const stubs = barrier_set_state()->stubs();
+  GrowableArray<ZKeepBarrierStubC2*>* const keep_stubs = barrier_set_state()->keep_stubs();
 
   for (int i = 0; i < stubs->length(); i++) {
     // Make sure there is enough space in the code buffer
@@ -172,6 +232,15 @@ void ZBarrierSetC2::emit_stubs(CodeBuffer& cb) const {
     ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stubs->at(i));
   }
 
+    for (int i = 0; i < keep_stubs->length(); i++) {
+        // Make sure there is enough space in the code buffer
+        if (cb.insts()->maybe_expand_to_ensure_remaining(PhaseOutput::MAX_inst_size) && cb.blob() == NULL) {
+            ciEnv::current()->record_failure("CodeCache is full");
+            return;
+        }
+
+        ZBarrierSet::assembler()->generate_c2_keep_barrier_stub(&masm, keep_stubs->at(i));
+    }
   masm.flush();
 }
 
@@ -179,6 +248,7 @@ int ZBarrierSetC2::estimate_stub_size() const {
   Compile* const C = Compile::current();
   BufferBlob* const blob = C->output()->scratch_buffer_blob();
   GrowableArray<ZLoadBarrierStubC2*>* const stubs = barrier_set_state()->stubs();
+  GrowableArray<ZKeepBarrierStubC2*>* const keep_stubs = barrier_set_state()->keep_stubs();
   int size = 0;
 
   for (int i = 0; i < stubs->length(); i++) {
@@ -187,6 +257,13 @@ int ZBarrierSetC2::estimate_stub_size() const {
     ZBarrierSet::assembler()->generate_c2_load_barrier_stub(&masm, stubs->at(i));
     size += cb.insts_size();
   }
+
+    for (int i = 0; i < keep_stubs->length(); i++) {
+        CodeBuffer cb(blob->content_begin(), (address)C->output()->scratch_locs_memory() - blob->content_begin());
+        MacroAssembler masm(&cb);
+        ZBarrierSet::assembler()->generate_c2_keep_barrier_stub(&masm, keep_stubs->at(i));
+        size += cb.insts_size();
+    }
 
   return size;
 }
@@ -204,6 +281,61 @@ static void set_barrier_data(C2Access& access) {
 Node* ZBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) const {
   set_barrier_data(access);
   return BarrierSetC2::load_at_resolved(access, val_type);
+}
+
+Node* ZBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) const {
+    set_barrier_data(access);
+    DecoratorSet decorators = access.decorators();
+
+    bool mismatched = (decorators & C2_MISMATCHED) != 0;
+    bool unaligned = (decorators & C2_UNALIGNED) != 0;
+    bool unsafe = (decorators & C2_UNSAFE_ACCESS) != 0;
+    bool requires_atomic_access = (decorators & MO_UNORDERED) == 0;
+
+    bool in_native = (decorators & IN_NATIVE) != 0;
+    assert(!in_native || (unsafe && !access.is_oop()), "not supported yet");
+
+    MemNode::MemOrd mo = access.mem_node_mo();
+
+    Node* store;
+    if (access.is_parse_access()) {
+        C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+
+        GraphKit* kit = parse_access.kit();
+        if (access.type() == T_DOUBLE) {
+            Node* new_val = kit->dstore_rounding(val.node());
+            val.set_node(new_val);
+        }
+
+        store = kit->store_to_memory(kit->control(), access.addr().node(), val.node(), access.type(),
+                                     access.addr().type(), mo, requires_atomic_access, unaligned, mismatched, unsafe, access.barrier_data());
+    } else {
+        assert(!requires_atomic_access, "not yet supported");
+        assert(access.is_opt_access(), "either parse or opt access");
+        C2OptAccess& opt_access = static_cast<C2OptAccess&>(access);
+        Node* ctl = opt_access.ctl();
+        MergeMemNode* mm = opt_access.mem();
+        PhaseGVN& gvn = opt_access.gvn();
+        const TypePtr* adr_type = access.addr().type();
+        int alias = gvn.C->get_alias_index(adr_type);
+        Node* mem = mm->memory_at(alias);
+
+        StoreNode* st = StoreNode::make(gvn, ctl, mem, access.addr().node(), adr_type, val.node(), access.type(), mo);
+        if (unaligned) {
+            st->set_unaligned_access();
+        }
+        if (mismatched) {
+            st->set_mismatched_access();
+        }
+        st->set_barrier_data(access.barrier_data());
+        store = gvn.transform(st);
+        if (store == st) {
+            mm->set_memory_at(alias, st);
+        }
+    }
+    access.set_raw_access(store);
+
+    return store;
 }
 
 Node* ZBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access, Node* expected_val,

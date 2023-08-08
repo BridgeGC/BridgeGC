@@ -21,6 +21,7 @@
  * questions.
  */
 
+#include <gc/shared/oopStorageSet.hpp>
 #include "precompiled.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/suspendibleThreadSet.hpp"
@@ -39,6 +40,8 @@
 #include "memory/iterator.hpp"
 #include "memory/universe.hpp"
 #include "utilities/align.hpp"
+
+static OopStorage* _data_oop_storage = NULL;
 
 ZCollectedHeap* ZCollectedHeap::heap() {
   return named_heap<ZCollectedHeap>(CollectedHeap::Z);
@@ -68,10 +71,24 @@ jint ZCollectedHeap::initialize() {
   if (!_heap.is_initialized()) {
     return JNI_ENOMEM;
   }
+  _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true);
 
   Universe::calculate_verify_data((HeapWord*)0, (HeapWord*)UINTPTR_MAX);
 
   return JNI_OK;
+}
+
+void ZCollectedHeap::set_keepObj(oop* p) {
+    assert(_data_oop_storage != NULL, "not yet initialized");
+    _data_oop_storage->append(p);
+}
+
+void ZCollectedHeap::release_oop_storage() {
+    delete _data_oop_storage;
+}
+
+void ZCollectedHeap::recreate_oop_storage() {
+    _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true);
 }
 
 void ZCollectedHeap::initialize_serviceability() {
@@ -157,18 +174,18 @@ HeapWord* ZCollectedHeap::allocate_new_tklab(size_t* actual_size) {
     return (HeapWord*)addr;
 }
 
-oop ZCollectedHeap::array_allocate(Klass* klass, int alloc_gen, int size, int length, bool do_zero, TRAPS) {
+oop ZCollectedHeap::array_allocate(Klass* klass, bool annotated, int size, int length, bool do_zero, TRAPS) {
   if (!do_zero) {
-    return CollectedHeap::array_allocate(klass, alloc_gen, size, length, false /* do_zero */, THREAD);
+    return CollectedHeap::array_allocate(klass, annotated, size, length, false /* do_zero */, THREAD);
   }
 
   ZObjArrayAllocator allocator(klass, size, length, THREAD);
-  return allocator.allocate(alloc_gen);
+  return allocator.allocate(annotated);
 }
 
-HeapWord* ZCollectedHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, int alloc_gen) {
+HeapWord* ZCollectedHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, bool annotated) {
   const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(size));
-  return (HeapWord*)_heap.alloc_object(size_in_bytes,alloc_gen);
+  return (HeapWord*)_heap.alloc_object(size_in_bytes,annotated);
 }
 
 MetaWord* ZCollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,

@@ -284,10 +284,10 @@ class NewTypeArrayStub: public CodeStub {
   LIR_Opr       _length;
   LIR_Opr       _result;
   CodeEmitInfo* _info;
-  int _alloc_gen;
+  bool _annotated;
 
  public:
-  NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, int alloc_gen);
+  NewTypeArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, bool _annotated);
   virtual void emit_code(LIR_Assembler* e);
   virtual CodeEmitInfo* info() const             { return _info; }
   virtual void visit(LIR_OpVisitState* visitor) {
@@ -307,10 +307,10 @@ private:
     LIR_Opr       _length;
     LIR_Opr       _result;
     CodeEmitInfo* _info;
-    int _alloc_gen;
+    bool _annotated;
 
 public:
-    NewTypeKeepArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, int alloc_gen);
+    NewTypeKeepArrayStub(LIR_Opr klass_reg, LIR_Opr length, LIR_Opr result, CodeEmitInfo* info, bool _annotated);
     virtual void emit_code(LIR_Assembler* e);
     virtual CodeEmitInfo* info() const             { return _info; }
     virtual void visit(LIR_OpVisitState* visitor) {

@@ -204,7 +204,7 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      */
     public ArrayDeque(int numElements, boolean keep) {
 		int result = numElements + 1;
-        elements = new @DataObj Object[result];
+        elements = new @Keep Object[result];
     }
 
 	/**

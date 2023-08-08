@@ -88,6 +88,63 @@ void ZLoadBarrierStubC1::print_name(outputStream* out) const {
 }
 #endif // PRODUCT
 
+ZKeepBarrierStubC1::ZKeepBarrierStubC1(LIRAccess& access, LIR_Opr ref, address runtime_stub) :
+        _decorators(access.decorators()),
+        _ref_addr(access.resolved_addr()),
+        _ref(ref),
+        _tmp(LIR_OprFact::illegalOpr),
+        _runtime_stub(runtime_stub) {
+
+    assert(_ref_addr->is_address(), "Must be an address");
+    assert(_ref->is_register(), "Must be a register");
+
+    // Allocate tmp register if needed
+    if (_ref_addr->as_address_ptr()->index()->is_valid() ||
+        _ref_addr->as_address_ptr()->disp() != 0) {
+        // Has index or displacement, need tmp register to load address into
+        _tmp = access.gen()->new_pointer_register();
+    }
+}
+
+DecoratorSet ZKeepBarrierStubC1::decorators() const {
+    return _decorators;
+}
+
+LIR_Opr ZKeepBarrierStubC1::ref() const {
+    return _ref;
+}
+
+LIR_Opr ZKeepBarrierStubC1::ref_addr() const {
+    return _ref_addr;
+}
+
+LIR_Opr ZKeepBarrierStubC1::tmp() const {
+    return _tmp;
+}
+
+address ZKeepBarrierStubC1::runtime_stub() const {
+    return _runtime_stub;
+}
+
+void ZKeepBarrierStubC1::visit(LIR_OpVisitState* visitor) {
+    visitor->do_slow_case();
+    visitor->do_input(_ref_addr);
+    visitor->do_output(_ref);
+    if (_tmp->is_valid()) {
+        visitor->do_temp(_tmp);
+    }
+}
+
+void ZKeepBarrierStubC1::emit_code(LIR_Assembler* ce) {
+    ZBarrierSet::assembler()->generate_c1_keep_barrier_stub(ce, this);
+}
+
+#ifndef PRODUCT
+void ZKeepBarrierStubC1::print_name(outputStream* out) const {
+    out->print("ZKeepBarrierStubC1");
+}
+#endif // PRODUCT
+
 class LIR_OpZLoadBarrierTest : public LIR_Op {
 private:
   LIR_Opr _opr;
@@ -152,7 +209,8 @@ static bool barrier_needed(LIRAccess& access) {
 
 ZBarrierSetC1::ZBarrierSetC1() :
     _load_barrier_on_oop_field_preloaded_runtime_stub(NULL),
-    _load_barrier_on_weak_oop_field_preloaded_runtime_stub(NULL) {}
+    _load_barrier_on_weak_oop_field_preloaded_runtime_stub(NULL),
+    _keep_barrier_prewrite_runtime_stub(NULL){}
 
 address ZBarrierSetC1::load_barrier_on_oop_field_preloaded_runtime_stub(DecoratorSet decorators) const {
   assert((decorators & ON_PHANTOM_OOP_REF) == 0, "Unsupported decorator");
@@ -187,6 +245,42 @@ void ZBarrierSetC1::load_barrier(LIRAccess& access, LIR_Opr result) const {
   __ branch_destination(stub->continuation());
 }
 
+void ZBarrierSetC1::keep_barrier(LIRAccess& access, LIR_Opr value) const {
+    // Fast path
+    const address runtime_stub = _keep_barrier_prewrite_runtime_stub;
+    LIRGenerator* gen = access.gen();
+    if (value->is_constant() && value->as_constant_ptr()->as_jobject() == NULL)
+        return;
+
+    if (!value->is_register()) {
+        LIR_Opr new_val_reg = gen->new_register(T_OBJECT);
+        if (value->is_constant()) {
+            __ move(value, new_val_reg);
+        } else {
+            __ leal(value, new_val_reg);
+        }
+        value = new_val_reg;
+    }
+
+    CodeStub* const stub = new ZKeepBarrierStubC1(access, value, runtime_stub);
+//    DecoratorSet decorators = access.decorators();
+//    bool is_array = (decorators & IS_ARRAY) != 0;
+//    bool on_anonymous = (decorators & ON_UNKNOWN_OOP_REF) != 0;
+//    bool precise = is_array || on_anonymous;
+//
+//    LIR_Opr post_addr = precise ? access.resolved_addr() : access.base().opr();
+
+    //__ append(new LIR_OpZLoadBarrierKeepTest(result));
+    //__ branch(lir_cond_equal, stub->continuation());
+
+    // Slow path
+     __ append(new LIR_OpZLoadBarrierKeepTest(value));
+     __ branch(lir_cond_equal, stub);
+    // __ jump(stub);
+
+    __ branch_destination(stub->continuation());
+}
+
 LIR_Opr ZBarrierSetC1::resolve_address(LIRAccess& access, bool resolve_in_register) {
   // We must resolve in register when patching. This is to avoid
   // having a patch area in the load barrier stub, since the call
@@ -203,6 +297,15 @@ void ZBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
   if (barrier_needed(access)) {
     load_barrier(access, result);
   }
+}
+
+void ZBarrierSetC1::store_at_resolved(LIRAccess& access, LIR_Opr value){
+
+    BarrierSetC1::store_at_resolved(access, value);
+
+    if (barrier_needed(access)) {
+        keep_barrier(access, value);
+    }
 }
 
 static void pre_load_barrier(LIRAccess& access) {
@@ -254,10 +357,30 @@ public:
   }
 };
 
+class ZKeepBarrierRuntimeStubCodeGenClosure : public StubAssemblerCodeGenClosure {
+private:
+    const DecoratorSet _decorators;
+
+public:
+    ZKeepBarrierRuntimeStubCodeGenClosure(DecoratorSet decorators) :
+            _decorators(decorators) {}
+
+    virtual OopMapSet* generate_code(StubAssembler* sasm) {
+        ZBarrierSet::assembler()->generate_c1_keep_barrier_runtime_stub(sasm, _decorators);
+        return NULL;
+    }
+};
+
 static address generate_c1_runtime_stub(BufferBlob* blob, DecoratorSet decorators, const char* name) {
   ZLoadBarrierRuntimeStubCodeGenClosure cl(decorators);
   CodeBlob* const code_blob = Runtime1::generate_blob(blob, -1 /* stub_id */, name, false /* expect_oop_map*/, &cl);
   return code_blob->code_begin();
+}
+
+static address generate_c1_keep_runtime_stub(BufferBlob* blob, DecoratorSet decorators, const char* name) {
+    ZKeepBarrierRuntimeStubCodeGenClosure cl(decorators);
+    CodeBlob* const code_blob = Runtime1::generate_blob(blob, -1 /* stub_id */, name, false /* expect_oop_map*/, &cl);
+    return code_blob->code_begin();
 }
 
 void ZBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* blob) {
@@ -265,4 +388,6 @@ void ZBarrierSetC1::generate_c1_runtime_stubs(BufferBlob* blob) {
     generate_c1_runtime_stub(blob, ON_STRONG_OOP_REF, "load_barrier_on_oop_field_preloaded_runtime_stub");
   _load_barrier_on_weak_oop_field_preloaded_runtime_stub =
     generate_c1_runtime_stub(blob, ON_WEAK_OOP_REF, "load_barrier_on_weak_oop_field_preloaded_runtime_stub");
+  _keep_barrier_prewrite_runtime_stub =
+    generate_c1_keep_runtime_stub(blob, ON_STRONG_OOP_REF, "_keep_barrier_prewrite_runtime_stub");
 }

@@ -954,14 +954,14 @@ public:
   }
   // allocation
   instanceOop allocate_instance(TRAPS);
-  instanceOop allocate_instance(int alloc_gen, TRAPS);
+  instanceOop allocate_instance(bool annotated, TRAPS);
   static instanceOop allocate_instance(oop cls, TRAPS);
 
   // additional member function to return a handle
   instanceHandle allocate_instance_handle(TRAPS);
 
   objArrayOop allocate_objArray(int n, int length, TRAPS);
-  objArrayOop allocate_objArray(int n, int length, int alloc_gen, TRAPS);
+  objArrayOop allocate_objArray(int n, int length, bool annotated, TRAPS);
   // Helper function
   static instanceOop register_finalizer(instanceOop i, TRAPS);
 

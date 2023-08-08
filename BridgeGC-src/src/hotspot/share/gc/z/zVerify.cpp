@@ -53,7 +53,7 @@ static void z_verify_oop(oop* p) {
   const oop o = RawAccess<>::oop_load(p);
   if (o != NULL) {
     const uintptr_t addr = ZOop::to_address(o);
-    guarantee(ZAddress::is_good(addr) || ZAddress::is_keep(addr), BAD_OOP_ARG(o, p));
+    guarantee(ZAddress::is_good(addr) || ZAddress::is_current_keep(addr), BAD_OOP_ARG(o, p));
     guarantee(oopDesc::is_oop(ZOop::from_address(addr)), BAD_OOP_ARG(o, p));
   }
 }
@@ -358,7 +358,7 @@ class ZVerifyBadOopClosure : public OopClosure {
 public:
   virtual void do_oop(oop* p) {
     const oop o = *p;
-    assert(!ZAddress::is_good(ZOop::to_address(o)) || ZAddress::is_keep(ZOop::to_address(o)), "Should not be good: " PTR_FORMAT, p2i(o));
+    assert(!ZAddress::is_good(ZOop::to_address(o)) || ZAddress::is_oneof_keep(ZOop::to_address(o)), "Should not be good: " PTR_FORMAT, p2i(o));
   }
 
   virtual void do_oop(narrowOop* p) {

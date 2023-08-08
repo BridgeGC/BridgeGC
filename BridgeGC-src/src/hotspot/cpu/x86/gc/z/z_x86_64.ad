@@ -54,6 +54,42 @@ static void z_load_barrier(MacroAssembler& _masm, const MachNode* node, Address 
     __ bind(*stub->continuation());
 }
 
+static void z_keep_barrier(MacroAssembler& _masm, const MachNode* node, Address ref_addr, Register ref, Register tmp, uint8_t barrier_data) {
+    if (barrier_data == ZLoadBarrierElided) {
+        return;			// Elided.
+    }
+
+    ZKeepBarrierStubC2* const stub = ZKeepBarrierStubC2::create(node, ref_addr, ref, tmp, barrier_data);
+
+    //__ cmpptr(ref, Address(r15_thread, ZThreadLocalData::address_keep_mask_offset()));
+    //__ jcc(Assembler::greaterEqual, *stub->continuation());
+    /*{
+        IntelJccErratumAlignment intel_alignment(_masm, 20);
+        __ testptr(ref, ZAddressFullMask);
+        __ jcc(Assembler::zero, *stub->continuation());
+    }*/
+    if (ref_addr.index() == noreg && ref_addr.disp() == 0) {
+        if (ref_addr.base() != tmp) {
+            __ movptr(tmp, ref_addr.base());
+        }
+    } else {
+        __ lea(tmp, ref_addr);
+    }
+
+    {
+        IntelJccErratumAlignment intel_alignment(_masm, 10 /* jcc_size */);
+        __ testptr(tmp, Address(r15_thread, ZThreadLocalData::address_keep_mask_offset()));
+        __ jcc(Assembler::zero, *stub->continuation());
+    }
+
+    {
+        IntelJccErratumAlignment intel_alignment(_masm, 10 /* jcc_size */);
+        __ testptr(ref, Address(r15_thread, ZThreadLocalData::address_keep_mask_offset()));
+        __ jcc(Assembler::zero, *stub->entry());
+    }
+    __ bind(*stub->continuation());
+}
+
 static void z_load_barrier_cmpxchg(MacroAssembler& _masm, const MachNode* node, Address ref_addr, Register ref, Register tmp, Label& good) {
   ZLoadBarrierStubC2* const stub = ZLoadBarrierStubC2::create(node, ref_addr, ref, tmp, ZLoadBarrierStrong);
   {
@@ -101,6 +137,25 @@ instruct zLoadP(rRegP dst, memory mem, rFlagsReg cr)
   %}
 
   ins_pipe(ialu_reg_mem);
+%}
+
+// Load Pointer
+instruct zKeepStoreP(memory mem, any_RegP src, rRegP tmp, rFlagsReg cr)
+%{
+    predicate(UseBridgeGC && n->as_Store()->barrier_data() != 0);
+    match(Set mem (StoreP mem src));
+    effect(TEMP tmp, KILL cr);
+
+    ins_cost(125);
+
+    format %{ "movq     $mem, $src" %}
+
+    ins_encode %{
+    z_keep_barrier(_masm, this, $mem$$Address, $src$$Register, $tmp$$Register, barrier_data());
+    __ movq($mem$$Address, $src$$Register);
+%}
+
+ins_pipe(ialu_mem_reg);
 %}
 
 instruct zCompareAndExchangeP(memory mem, rax_RegP oldval, rRegP newval, rRegP tmp, rFlagsReg cr) %{

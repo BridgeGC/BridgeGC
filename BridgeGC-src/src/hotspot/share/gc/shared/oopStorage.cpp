@@ -436,6 +436,11 @@ oop* OopStorage::allocate() {
   return result;
 }
 
+void OopStorage::append(oop* p) {
+    MutexLocker ml(_allocation_mutex, Mutex::_no_safepoint_check_flag);
+    _follower_array.append(p);
+}
+
 bool OopStorage::try_add_block() {
   assert_lock_strong(_allocation_mutex);
   Block* block;
@@ -739,9 +744,11 @@ static Mutex* make_oopstorage_mutex(const char* storage_name,
   return new PaddedMutex(rank, name, true, Mutex::_safepoint_check_never);
 }
 
-OopStorage::OopStorage(const char* name) :
+OopStorage::OopStorage(const char* name, bool type) :
+  _datatype(type),
   _name(os::strdup(name)),
   _active_array(ActiveArray::create(initial_active_array_size)),
+  _follower_array(8),
   _allocation_list(),
   _deferred_updates(NULL),
   _allocation_mutex(make_oopstorage_mutex(name, "alloc", Mutex::oopstorage)),

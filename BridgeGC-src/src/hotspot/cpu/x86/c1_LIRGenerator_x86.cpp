@@ -1264,12 +1264,7 @@ void LIRGenerator::do_Convert(Convert* x) {
 
 void LIRGenerator::do_NewInstance(NewInstance* x) {
   print_if_not_loaded(x);
-  /*Method* compileMethod = this->compilation()->env()->task()->method();
-  int visiablebci = x->state()->bci();
-  int bci = this->compilation()->current_instruction()->printable_bci();*/
-    // char *methodname = this->compilation()->env()->task()->method()->name_and_sig_as_C_string();
-    int alloc_gen = this->compilation()->env()->task()->method()->alloc_anno() == NULL ? 0 : 1;
-    //int alloc_gen = get_alloc_gen_1(this->compilation()->env()->task()->method()->alloc_anno_cache(),x->state()->bci());
+  bool annotated = this->compilation()->env()->task()->method()->is_annotated();
   CodeEmitInfo* info = state_for(x, x->state());
   LIR_Opr reg = result_register_for(x->type());
   new_instance(reg, x->klass(), x->is_unresolved(),
@@ -1277,74 +1272,14 @@ void LIRGenerator::do_NewInstance(NewInstance* x) {
                        FrameMap::rdi_oop_opr,
                        FrameMap::rsi_oop_opr,
                        LIR_OprFact::illegalOpr,
-                       FrameMap::rdx_metadata_opr, info, alloc_gen);
+                       FrameMap::rdx_metadata_opr, info, annotated);
   LIR_Opr result = rlock_result(x);
   __ move(reg, result);
 }
 
-int LIRGenerator::get_alloc_gen_1(Array<u2>* aac, int bci) {
-    // First, look into cache.
-    if (aac != NULL) {
-        return 1;
-    }
-    return 0;
-    /*if(aac != NULL) {
-
-        AnnotationArray* aa = method->type_annotations();
-        // ConstantPool* pool = method->constants();
-
-        u1* data = aa->data();
-
-        // Get short (# of annotations)
-        u2 n_anno =Bytes::get_Java_u2(data);
-
-        data += 2;
-        for (u2 i = 0; i < n_anno; i++) {
-//            // byte target type (should be 68 == 0x44 == NEW)
-            // u1 anno_target = *data;
-//            // Get short (location, should be bci)
-            u2 anno_bci = Bytes::get_Java_u2(data + 1);
-            // byte loc data size (should be zero)
-            u1 dsize = *(data + 3);
-            // Note: after the previous byte comes 'dsize'*2 bytes of location data.
-            // Get short (type index in constant pool, should be Old)
-            //u2 anno_type_index = Bytes::get_Java_u2(data + 4 + dsize*2);
-            // Get char* (type name, should be Ljava/lang/Gen;)
-            //Symbol* type_name = pool->symbol_at(anno_type_index);
-
-            // Note: If anno_bco == bci, then they both point to the same bc. In this
-            // situation there is no need to fix the bci. Only if they differ, we
-            // should look into the size of make sure that both bcis are a match.
-            int anno_bc_len = 0;
-
-            for (int i = 0; i < n_dims; i++) {
-                anno_bc_len += Bytecodes::length_for(Bytecodes::code_at(method, anno_bci + anno_bc_len));
-            }
-
-
-            if ((anno_bci+anno_bc_len) == bci) {
-                aac->at_put(next_centry, bci); // Storing in cache.
-                return 1;
-            }
-            // <underscore> 8 is the number of bytes used a alloc annotation.
-            // <underscore> Note: I'm assuming the annotation has no elements!
-            data += 8 + dsize*2;
-        }
-    }
-
-    return alloc_gen;*/
-}
-
 void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
   CodeEmitInfo* info = state_for(x, x->state());
-  /*Method* compileMethod = this->compilation()->env()->task()->method();
-  int visiablebci = x->state()->bci();*/
-  //int bci = this->compilation()->current_instruction()->printable_bci();
-    int alloc_gen = this->compilation()->env()->task()->method()->alloc_anno() == NULL ? 0 : 1;
-  //int alloc_gen = get_alloc_gen_1(this->compilation()->env()->task()->method()->alloc_anno_cache(),x->state()->bci());
-  /*if(alloc_gen>0){
-      int i = 0;
-  }*/
+  bool annotated = this->compilation()->env()->task()->method()->is_annotated();
   LIRItem length(x->length(), this);
   length.load_item_force(FrameMap::rbx_opr);
 
@@ -1360,14 +1295,14 @@ void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
   __ metadata2reg(ciTypeArrayKlass::make(elem_type)->constant_encoding(), klass_reg);
   CodeStub* slow_path;
 
-  if(alloc_gen == 1){
-      slow_path = new NewTypeKeepArrayStub(klass_reg, len, reg, info, alloc_gen);
+  if(annotated){
+      slow_path = new NewTypeKeepArrayStub(klass_reg, len, reg, info, annotated);
   }
   else{
-      slow_path = new NewTypeArrayStub(klass_reg, len, reg, info, alloc_gen);
+      slow_path = new NewTypeArrayStub(klass_reg, len, reg, info, annotated);
   }
 
-  __ allocate_array(reg, len, tmp1, tmp2, tmp3, tmp4, elem_type, klass_reg, slow_path, alloc_gen);
+  __ allocate_array(reg, len, tmp1, tmp2, tmp3, tmp4, elem_type, klass_reg, slow_path, annotated);
 
   LIR_Opr result = rlock_result(x);
   __ move(reg, result);
@@ -1375,11 +1310,7 @@ void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
 
 
 void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
-    /*Method* compileMethod = this->compilation()->env()->task()->method();
-    int visiablebci = x->state()->bci();*/
-    //int bci = this->compilation()->current_instruction()->printable_bci();
-    int alloc_gen = this->compilation()->env()->task()->method()->alloc_anno() == NULL ? 0 : 1;
-    // int alloc_gen = get_alloc_gen_1(this->compilation()->env()->task()->method()->alloc_anno_cache(),x->state()->bci());
+  bool annotated = this->compilation()->env()->task()->method()->is_annotated();
   LIRItem length(x->length(), this);
   // in case of patching (i.e., object class is not yet loaded), we need to reexecute the instruction
   // and therefore provide the state before the parameters have been consumed
@@ -1401,7 +1332,7 @@ void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
   LIR_Opr len = length.result();
 
   CodeStub* slow_path;
-    if(alloc_gen == 1){
+    if(annotated){
         slow_path = new NewObjectKeepArrayStub(klass_reg, len, reg, info);
     }else{
         slow_path = new NewObjectArrayStub(klass_reg, len, reg, info);
@@ -1411,7 +1342,7 @@ void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
     BAILOUT("encountered unloaded_ciobjarrayklass due to out of memory error");
   }
   klass2reg_with_patching(klass_reg, obj, patching_info);
-  __ allocate_array(reg, len, tmp1, tmp2, tmp3, tmp4, T_OBJECT, klass_reg, slow_path, alloc_gen);
+  __ allocate_array(reg, len, tmp1, tmp2, tmp3, tmp4, T_OBJECT, klass_reg, slow_path, annotated);
 
   LIR_Opr result = rlock_result(x);
   __ move(reg, result);

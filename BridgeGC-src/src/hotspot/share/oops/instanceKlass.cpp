@@ -1387,11 +1387,11 @@ bool InstanceKlass::is_same_or_direct_interface(Klass *k) const {
   return false;
 }
 
-objArrayOop InstanceKlass::allocate_objArray(int n, int length, int alloc_gen, TRAPS) {
+objArrayOop InstanceKlass::allocate_objArray(int n, int length, bool annotated, TRAPS) {
   check_array_allocation_length(length, arrayOopDesc::max_array_length(T_OBJECT), CHECK_NULL);
   int size = objArrayOopDesc::object_size(length);
   Klass* ak = array_klass(n, CHECK_NULL);
-  objArrayOop o = (objArrayOop)Universe::heap()->array_allocate(ak, alloc_gen, size, length,
+  objArrayOop o = (objArrayOop)Universe::heap()->array_allocate(ak, annotated, size, length,
                                                                 /* do_zero */ true, CHECK_NULL);
   return o;
 }
@@ -1417,20 +1417,20 @@ instanceOop InstanceKlass::allocate_instance(TRAPS) {
 
   instanceOop i;
 
-  i = (instanceOop)Universe::heap()->obj_allocate(this, 0, size, CHECK_NULL);
+  i = (instanceOop)Universe::heap()->obj_allocate(this, false, size, CHECK_NULL);
   if (has_finalizer_flag && !RegisterFinalizersAtInit) {
     i = register_finalizer(i, CHECK_NULL);
   }
   return i;
 }
 
-instanceOop InstanceKlass::allocate_instance(int alloc_gen, TRAPS) {
+instanceOop InstanceKlass::allocate_instance(bool annotated, TRAPS) {
     bool has_finalizer_flag = has_finalizer(); // Query before possible GC
     int size = size_helper();  // Query before forming handle.
 
     instanceOop i;
 
-    i = (instanceOop)Universe::heap()->obj_allocate(this, alloc_gen, size, CHECK_NULL);
+    i = (instanceOop)Universe::heap()->obj_allocate(this, annotated, size, CHECK_NULL);
     if (has_finalizer_flag && !RegisterFinalizersAtInit) {
         i = register_finalizer(i, CHECK_NULL);
     }

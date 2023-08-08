@@ -865,7 +865,7 @@ OopStorage* Universe::vm_global() {
 }
 
 void Universe::oopstorage_init() {
-  Universe::_vm_global = OopStorageSet::create_strong("VM Global");
+  Universe::_vm_global = OopStorageSet::create_strong("VM Global", false);
   Universe::_vm_weak = OopStorageSet::create_weak("VM Weak");
 }
 

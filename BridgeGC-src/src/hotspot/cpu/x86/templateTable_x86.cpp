@@ -3999,10 +3999,6 @@ void TemplateTable::_new() {
   Label swith_TLAB;
   Label end_TLAB;
 
-  /*__ get_method(rbx);
-  __ cmpptr(Address(rbx, in_bytes(Method::alloc_anno_offset())), (int32_t)NULL_WORD);
-  __ jcc(Assembler::notEqual, slow_case_no_pop);*/
-
   __ get_cpool_and_tags(rcx, rax);
   // Make sure the class we're about to instantiate has been resolved.
   // This is done before loading InstanceKlass to be consistent with the order
@@ -4053,7 +4049,7 @@ void TemplateTable::_new() {
 
   if (UseTLAB) {
     __ get_method(rbx);
-    __ cmpptr(Address(rbx, in_bytes(Method::alloc_anno_offset())), (int32_t) NULL_WORD);
+    __ cmpptr(Address(rbx, in_bytes(Method::annotation_offset())), (int32_t) NULL_WORD);
     __ jcc(Assembler::equal, swith_TLAB);
     __ tklab_allocate(thread, rax, rdx, 0, rcx, rbx, slow_case);
     __ jmp(end_TLAB);

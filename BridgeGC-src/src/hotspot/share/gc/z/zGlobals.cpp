@@ -45,6 +45,9 @@ uintptr_t  ZAddressGoodKeepMask;
 uintptr_t  ZAddressBadMask;
 uintptr_t  ZAddressWeakBadMask;
 uintptr_t  ZAddressKeepMask;
+uintptr_t  ZAddressAnotherKeepMask;
+uintptr_t  ZAddressCurrentKeepMask;
+uintptr_t  ZAddressOneofKeepMask;
 
 static uint32_t* ZAddressCalculateBadMaskHighOrderBitsAddr() {
   const uintptr_t addr = reinterpret_cast<uintptr_t>(&ZAddressBadMask);

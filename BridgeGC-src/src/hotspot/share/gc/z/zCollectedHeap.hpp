@@ -66,6 +66,10 @@ public:
   virtual void initialize_serviceability();
   virtual void stop();
 
+  static void set_keepObj(oop* p);
+  static void release_oop_storage();
+  static void recreate_oop_storage();
+
   virtual SoftRefPolicy* soft_ref_policy();
 
   virtual size_t max_capacity() const;
@@ -78,8 +82,8 @@ public:
 
   virtual uint32_t hash_oop(oop obj) const;
 
-  virtual oop array_allocate(Klass* klass, int alloc_gen, int size, int length, bool do_zero, TRAPS);
-  virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, int alloc_gen);
+  virtual oop array_allocate(Klass* klass, bool annotated, int size, int length, bool do_zero, TRAPS);
+  virtual HeapWord* mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, bool annotated);
   virtual MetaWord* satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
                                                        size_t size,
                                                        Metaspace::MetadataType mdtype);

@@ -58,7 +58,7 @@ public:
     _igvn.register_new_node_with_optimizer(n);
     return n;
   }
-  void set_eden_pointers(Node* &eden_top_adr, Node* &eden_end_adr, int alloc_gen);
+  void set_eden_pointers(Node* &eden_top_adr, Node* &eden_end_adr, bool annotated);
   Node* make_load( Node* ctl, Node* mem, Node* base, int offset,
                    const Type* value_type, BasicType bt);
   Node* make_store(Node* ctl, Node* mem, Node* base, int offset,
@@ -215,7 +215,6 @@ public:
   void eliminate_macro_nodes();
   bool expand_macro_nodes();
 
-  static int get_alloc_gen_2(Array<u2>* aac, int bci);
 
   PhaseIterGVN &igvn() const { return _igvn; }
 
@@ -229,7 +228,7 @@ public:
   Node* prefetch_allocation(Node* i_o,
                             Node*& needgc_false, Node*& contended_phi_rawmem,
                             Node* old_eden_top, Node* new_eden_top,
-                            intx lines, int alloc_gen);
+                            intx lines, bool annotated);
   void expand_dtrace_alloc_probe(AllocateNode* alloc, Node* fast_oop, Node*&fast_oop_ctrl, Node*&fast_oop_rawmem);
   void expand_initialize_membar(AllocateNode* alloc, InitializeNode* init, Node*&fast_oop_ctrl, Node*&fast_oop_rawmem);
 };

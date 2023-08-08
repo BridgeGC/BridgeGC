@@ -3542,7 +3542,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 #endif // INCLUDE_JVMCI
 
   // Initialize OopStorage for threadObj
-  _thread_oop_storage = OopStorageSet::create_strong("Thread OopStorage");
+  _thread_oop_storage = OopStorageSet::create_strong("Thread OopStorage",false);
 
   // Attach the main thread to this os thread
   JavaThread* main_thread = new JavaThread();

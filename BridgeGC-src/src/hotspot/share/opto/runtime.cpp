@@ -195,7 +195,7 @@ const char* OptoRuntime::stub_name(address entry) {
 // and try allocation again.
 
 // object allocation
-JRT_BLOCK_ENTRY(void, OptoRuntime::new_instance_C(Klass* klass, int alloc_gen, JavaThread* thread))
+JRT_BLOCK_ENTRY(void, OptoRuntime::new_instance_C(Klass* klass, bool annotated, JavaThread* thread))
   JRT_BLOCK;
 #ifndef PRODUCT
   SharedRuntime::_new_instance_ctr++;         // new instance requires GC
@@ -215,10 +215,7 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::new_instance_C(Klass* klass, int alloc_gen, J
   if (!HAS_PENDING_EXCEPTION) {
     // Scavenge and allocate an instance.
     Handle holder(THREAD, klass->klass_holder()); // keep the klass alive
-    /*if(alloc_gen>0){
-        log_info(gc, heap)("Opto alloc:");
-    }*/
-    oop result = InstanceKlass::cast(klass)->allocate_instance(alloc_gen, THREAD);
+    oop result = InstanceKlass::cast(klass)->allocate_instance(annotated, THREAD);
     thread->set_vm_result(result);
 
     // Pass oops back through thread local storage.  Our apparent type to Java
@@ -236,7 +233,7 @@ JRT_END
 
 
 // array allocation
-JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_C(Klass* array_type, int alloc_gen, int len, JavaThread *thread))
+JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_C(Klass* array_type, bool annotated, int len, JavaThread *thread))
   JRT_BLOCK;
 #ifndef PRODUCT
   SharedRuntime::_new_array_ctr++;            // new array requires GC
@@ -254,14 +251,14 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_C(Klass* array_type, int alloc_gen,
         frame runtime_frame = thread->last_frame();
         log_info(gc, heap)("Opto alloc:");
     }*/
-    result = oopFactory::new_typeArray(alloc_gen, elem_type, len, THREAD);
+    result = oopFactory::new_typeArray(annotated, elem_type, len, THREAD);
   } else {
     // Although the oopFactory likes to work with the elem_type,
     // the compiler prefers the array_type, since it must already have
     // that latter value in hand for the fast path.
     Handle holder(THREAD, array_type->klass_holder()); // keep the array klass alive
     Klass* elem_type = ObjArrayKlass::cast(array_type)->element_klass();
-    result = oopFactory::new_objArray(elem_type, len, alloc_gen, THREAD);
+    result = oopFactory::new_objArray(elem_type, len, annotated, THREAD);
   }
 
   // Pass oops back through thread local storage.  Our apparent type to Java
@@ -277,7 +274,7 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_C(Klass* array_type, int alloc_gen,
 JRT_END
 
 // array allocation without zeroing
-JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_nozero_C(Klass* array_type, int alloc_gen, int len, JavaThread *thread))
+JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_nozero_C(Klass* array_type, bool annotated, int len, JavaThread *thread))
   JRT_BLOCK;
 #ifndef PRODUCT
   SharedRuntime::_new_array_ctr++;            // new array requires GC
@@ -290,7 +287,7 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::new_array_nozero_C(Klass* array_type, int all
   assert(array_type->is_typeArray_klass(), "should be called only for type array");
   // The oopFactory likes to work with the element type.
   BasicType elem_type = TypeArrayKlass::cast(array_type)->element_type();
-  result = oopFactory::new_typeArray_nozero(elem_type, len, alloc_gen,THREAD);
+  result = oopFactory::new_typeArray_nozero(elem_type, len, annotated,THREAD);
 
   // Pass oops back through thread local storage.  Our apparent type to Java
   // is that we return an oop, but we can block on exit from this routine and

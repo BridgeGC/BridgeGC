@@ -37,7 +37,7 @@ class OopStorageSet : public AllStatic {
 
 public:
   // Must be updated when new OopStorages are introduced
-  static const uint strong_count = 4 JVMTI_ONLY(+ 1);
+  static const uint strong_count = 5 JVMTI_ONLY(+ 1);
   static const uint weak_count = 5 JVMTI_ONLY(+ 1) JFR_ONLY(+ 1);
   static const uint all_count = strong_count + weak_count;
 
@@ -71,7 +71,8 @@ public:
   static Iterator weak_iterator();
   static Iterator all_iterator();
 
-  static OopStorage* create_strong(const char* name);
+  static OopStorage* create_strong(const char* name, bool type);
+  static OopStorage* recreate_strong(const char* name, bool type);
   static OopStorage* create_weak(const char* name);
 
   template <typename Closure>

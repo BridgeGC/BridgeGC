@@ -1623,7 +1623,7 @@ void LIR_Assembler::emit_alloc_obj(LIR_OpAllocObj* op) {
                      op->object_size(),
                      op->klass()->as_register(),
                      *op->stub()->entry(),
-                     op->alloc_gen());
+                     op->annotated());
   __ bind(*op->stub()->continuation());
 }
 
@@ -1656,7 +1656,7 @@ void LIR_Assembler::emit_alloc_array(LIR_OpAllocArray* op) {
                       array_element_size(op->type()),
                       op->klass()->as_register(),
                       *op->stub()->entry(),
-                      op->alloc_gen());
+                      op->annotated());
   }
   __ bind(*op->stub()->continuation());
 }

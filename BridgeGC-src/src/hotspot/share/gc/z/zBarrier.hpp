@@ -119,8 +119,8 @@ public:
   static void keep_alive_barrier_on_oop(oop o);
 
   // Mark barrier
-  static void mark_barrier_on_oop_field(volatile oop* p, bool finalizable);
-  static void mark_barrier_on_oop_array(volatile oop* p, size_t length, bool finalizable);
+  static void mark_barrier_on_oop_field(volatile oop* p, bool finalizable, bool keep);
+  static void mark_barrier_on_oop_array(volatile oop* p, size_t length, bool finalizable, bool keep);
   static void mark_barrier_on_invisible_root_oop_field(oop* p);
 
   // Narrow oop variants, never used.

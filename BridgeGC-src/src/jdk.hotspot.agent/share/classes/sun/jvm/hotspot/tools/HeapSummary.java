@@ -184,7 +184,7 @@ public class HeapSummary extends Tool {
 
        l = getFlagValue("UseBridgeGC", flagMap);
        if (l == 1L) {
-           System.out.print("ZGC ");
+           System.out.print("BridgeGC ");
            l = getFlagValue("ParallelGCThreads", flagMap);
            System.out.println("with " + l + " thread(s)");
            return;

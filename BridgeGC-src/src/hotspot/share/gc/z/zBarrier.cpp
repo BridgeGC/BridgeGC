@@ -69,32 +69,22 @@ bool ZBarrier::should_mark_through(uintptr_t addr) {
   return true;
 }
 
-/*void ZBarrier::set_direct(oop* p, bool finalizable){
-    uintptr_t addr = ZOop::to_address(Atomic::load(p));
-    if(!ZAddress::is_null(addr)){
-        ZHeap::heap()->setDirect(addr);
-    }
-}*/
-
 
 template <bool follow, bool finalizable, bool publish>
 uintptr_t ZBarrier::mark(uintptr_t addr) {
   uintptr_t good_addr;
   //assert(!ZAddress::is_keep(addr),"Not mark Keep");
-  if (ZAddress::is_marked(addr)) {
+  if (ZAddress::is_pure_marked(addr)) {
     // Already marked, but try to mark though anyway
     good_addr = ZAddress::good(addr);
   } else if (ZAddress::is_remapped(addr)) {
     // Already remapped, but also needs to be marked
     good_addr = ZAddress::good(addr);
-  } else{
-    // Needs to be both remapped and marked
-    good_addr = remap(addr);
-  }
-
-  if(ZDriver::AfterKeep){
-      if(ZHeap::heap()->is_object_in_keep(good_addr))
-          return ZAddress::keep(good_addr);
+  } else if (ZAddress::is_oneof_keep(addr)) {
+    good_addr = ZAddress::currentkeep(addr);
+  }else{
+      // Needs to be both remapped and marked
+      good_addr = remap(addr);
   }
 
   // Mark
@@ -125,15 +115,16 @@ uintptr_t ZBarrier::remap(uintptr_t addr) {
 uintptr_t ZBarrier::relocate(uintptr_t addr) {
   assert(!ZAddress::is_good(addr), "Should not be good");
   assert(!ZAddress::is_weak_good(addr), "Should not be weak good");
+  assert(!ZAddress::is_oneof_keep(addr), "Should not be keep");
+  if(ZAddress::is_oneof_keep(addr)){
+      return ZAddress::currentkeep(addr);
+  }
   return ZHeap::heap()->relocate_object(addr);
 }
 
 uintptr_t ZBarrier::relocate_or_mark(uintptr_t addr) {
     if(during_relocate()){
-        if(ZAddress::is_keep(addr))
-            return ZAddress::good(addr);
-        else
-            return relocate(addr);
+        return relocate(addr);
     } else
        return mark<Follow, Strong, Publish>(addr);
 }

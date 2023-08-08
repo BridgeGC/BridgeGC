@@ -87,11 +87,11 @@ TypeArrayKlass::TypeArrayKlass(BasicType type, Symbol* name) : ArrayKlass(name, 
   set_class_loader_data(ClassLoaderData::the_null_class_loader_data());
 }
 
-typeArrayOop TypeArrayKlass::allocate_common(int alloc_gen, int length, bool do_zero, TRAPS) {
+typeArrayOop TypeArrayKlass::allocate_common(bool annotated, int length, bool do_zero, TRAPS) {
   assert(log2_element_size() >= 0, "bad scale");
   check_array_allocation_length(length, max_length(), CHECK_NULL);
   size_t size = typeArrayOopDesc::object_size(layout_helper(), length);
-  return (typeArrayOop)Universe::heap()->array_allocate(this, alloc_gen, (int)size, length,
+  return (typeArrayOop)Universe::heap()->array_allocate(this, annotated, (int)size, length,
                                                         do_zero, CHECK_NULL);
 }
 

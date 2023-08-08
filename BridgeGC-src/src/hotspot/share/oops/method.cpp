@@ -107,7 +107,8 @@ Method::Method(ConstMethod* xconst, AccessFlags access_flags) {
   clear_method_counters();
   set_vtable_index(Method::garbage_vtable_index);
 
-  set_alloc_anno(NULL);
+  _annotation = NULL;
+  _is_annotated = false;
 
   // Fix and bury in Method*
   set_interpreter_entry(NULL); // sets i2i entry and from_int

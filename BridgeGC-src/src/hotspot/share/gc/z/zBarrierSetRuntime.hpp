@@ -35,6 +35,8 @@ private:
   static oopDesc* load_barrier_on_oop_field_preloaded(oopDesc* o, oop* p);
   static oopDesc* load_barrier_on_weak_oop_field_preloaded(oopDesc* o, oop* p);
   static void check_value(oopDesc* o, oop* p);
+  static void check_c1_value(oopDesc* o, oop* p);
+  static void check_c2_value(oopDesc* o, oop* p);
   static oopDesc* load_barrier_on_phantom_oop_field_preloaded(oopDesc* o, oop* p);
   static oopDesc* weak_load_barrier_on_oop_field_preloaded(oopDesc* o, oop* p);
   static oopDesc* weak_load_barrier_on_weak_oop_field_preloaded(oopDesc* o, oop* p);
@@ -46,6 +48,8 @@ public:
   static address load_barrier_on_oop_field_preloaded_addr(DecoratorSet decorators);
   static address load_barrier_on_oop_field_preloaded_addr();
   static address check_address_value();
+  static address check_c1_address_value();
+  static address check_c2_address_value();
   static address load_barrier_on_weak_oop_field_preloaded_addr();
   static address load_barrier_on_phantom_oop_field_preloaded_addr();
   static address weak_load_barrier_on_oop_field_preloaded_addr();

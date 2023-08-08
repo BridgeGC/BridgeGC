@@ -33,6 +33,7 @@
 #include "gc/z/zHeap.inline.hpp"
 #include "runtime/atomic.hpp"
 #include "zDriver.hpp"
+#include "zCollectedHeap.hpp"
 
 // A self heal must always "upgrade" the address metadata bits in
 // accordance with the metadata bits state machine, which has the
@@ -337,12 +338,13 @@ inline oop ZBarrier::load_barrier_on_phantom_oop_field_preloaded(volatile oop* p
 
 inline void ZBarrier::load_barrier_on_root_oop_field(oop* p) {
   const oop o = *p;
-
+    const uintptr_t addr = ZOop::to_address(o);
   root_barrier<is_good_or_null_fast_path, load_barrier_on_oop_slow_path>(p, o);
 }
 
 inline void ZBarrier::load_barrier_on_invisible_root_oop_field(oop* p) {
   const oop o = *p;
+    const uintptr_t addr = ZOop::to_address(o);
 
   root_barrier<is_good_or_null_fast_path, load_barrier_on_invisible_root_oop_slow_path>(p, o);
 }
@@ -393,7 +395,6 @@ inline oop ZBarrier::weak_load_barrier_on_phantom_oop_field_preloaded(volatile o
   if (ZResurrection::is_blocked()) {
     return barrier<is_good_or_null_fast_path, weak_load_barrier_on_phantom_oop_slow_path>(p, o);
   }
-
   return weak_load_barrier_on_oop_field_preloaded(p, o);
 }
 
@@ -450,20 +451,19 @@ inline void ZBarrier::keep_alive_barrier_on_oop(oop o) {
 //
 // Mark barrier
 //
-inline void ZBarrier::mark_barrier_on_oop_field(volatile oop* p, bool finalizable) {
+inline void ZBarrier::mark_barrier_on_oop_field(volatile oop* p, bool finalizable, bool keep) {
   const oop o = Atomic::load(p);
+  oop check = o;
+  const uintptr_t addr = ZOop::to_address(o);
 
   if (finalizable) {
-
-    barrier<is_marked_or_null_fast_path, mark_barrier_on_finalizable_oop_slow_path>(p, o);
+    check = barrier<is_marked_or_null_fast_path, mark_barrier_on_finalizable_oop_slow_path>(p, o);
   } else {
-    const uintptr_t addr = ZOop::to_address(o);
 
     if (ZAddress::is_good(addr)) {
-        if(ZAddress::is_keep(addr)){
-            if (o->is_objArray() && !thisarray.contains(addr)) {
+        if(ZAddress::is_oneof_keep(addr)){
+            if (o->is_objArray())
                 thisarray.push(addr);
-            }
             return;
         }
         else
@@ -471,17 +471,22 @@ inline void ZBarrier::mark_barrier_on_oop_field(volatile oop* p, bool finalizabl
       // Mark through good oop
     } else {
       // Mark through bad oop
-      barrier<is_good_or_null_fast_path, mark_barrier_on_oop_slow_path>(p, o);
+      check = barrier<is_good_or_null_fast_path, mark_barrier_on_oop_slow_path>(p, o);
     }
   }
+  if(keep && check != NULL && !ZAddress::is_oneof_keep(addr)){
+      oop* test = const_cast<oop*>(p);
+      ZCollectedHeap::set_keepObj(test);
+  }
+
 }
 
-inline void ZBarrier::mark_barrier_on_oop_array(volatile oop* p, size_t length, bool finalizable) {
+inline void ZBarrier::mark_barrier_on_oop_array(volatile oop* p, size_t length, bool finalizable, bool keep) {
     /*if(ZAddress::is_keep(ZOop::to_address(Atomic::load(p))) && ZAddress::is_keep(ZOop::to_address(Atomic::load(p + length))) && !ZDriver::KeepPermit){
         return;
     }*/
     for (volatile const oop* const end = p + length; p < end; p++) {
-    mark_barrier_on_oop_field(p, finalizable);
+        mark_barrier_on_oop_field(p, finalizable, keep);
   }
 }
 

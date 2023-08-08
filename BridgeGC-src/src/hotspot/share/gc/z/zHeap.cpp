@@ -47,6 +47,7 @@
 #include "runtime/safepoint.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/debug.hpp"
+#include "zCollectedHeap.hpp"
 
 static const ZStatCounter ZCounterUndoPageAllocation("Memory", "Undo Page Allocation", ZStatUnitOpsPerSecond);
 static const ZStatCounter ZCounterOutOfMemory("Memory", "Out Of Memory", ZStatUnitOpsPerSecond);
@@ -240,6 +241,13 @@ void ZHeap::mark_start() {
 
   // Enter mark phase
   ZGlobalPhase = ZPhaseMark;
+
+  if(ZDriver::KeepPermit){
+
+    ZCollectedHeap::release_oop_storage();
+
+    ZCollectedHeap::recreate_oop_storage();
+  }
 
   // Reset marking information and mark roots
   _mark.start();

@@ -240,25 +240,24 @@ JRT_ENTRY(void, InterpreterRuntime::_new(JavaThread* thread, ConstantPool* pool,
   //       Java).
   //       If we have a breakpoint, then we don't rewrite
   //       because the _breakpoint bytecode would be lost.
-  int is_data_object = thread->last_frame().interpreter_frame_method()->alloc_anno() == NULL ? 0 : 1;
-
-  oop obj = klass->allocate_instance(is_data_object, CHECK);
+  bool annotated = thread->last_frame().interpreter_frame_method()->is_annotated();
+  oop obj = klass->allocate_instance(annotated, CHECK);
 
   thread->set_vm_result(obj);
 JRT_END
 
 
 JRT_ENTRY(void, InterpreterRuntime::newarray(JavaThread* thread, BasicType type, jint size))
-  int is_data_object = thread->last_frame().interpreter_frame_method()->alloc_anno() == NULL ? 0 : 1;
-  oop obj = oopFactory::new_typeArray(is_data_object, type, size, CHECK);
+  bool annotated = thread->last_frame().interpreter_frame_method()->is_annotated();
+  oop obj = oopFactory::new_typeArray(annotated, type, size, CHECK);
   thread->set_vm_result(obj);
 JRT_END
 
 
 JRT_ENTRY(void, InterpreterRuntime::anewarray(JavaThread* thread, ConstantPool* pool, int index, jint size))
   Klass*    klass = pool->klass_at(index, CHECK);
-  int is_data_object = thread->last_frame().interpreter_frame_method()->alloc_anno() == NULL ? 0 : 1;
-  objArrayOop obj = oopFactory::new_objArray(klass, size, is_data_object, CHECK);
+  bool annotated = thread->last_frame().interpreter_frame_method()->is_annotated();
+  objArrayOop obj = oopFactory::new_objArray(klass, size, annotated, CHECK);
   thread->set_vm_result(obj);
 JRT_END
 

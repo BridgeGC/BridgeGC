@@ -81,7 +81,7 @@ void ZStackWatermark::start_processing_impl(void* context) {
 
   // Update thread local address bad mask
   ZThreadLocalData::set_address_bad_mask(_jt, ZAddressBadMask);
-  // ZThreadLocalData::set_address_keep_mask(_jt, ZAddressGoodMask);
+  ZThreadLocalData::set_address_keep_mask(_jt, ZAddressOneofKeepMask);
 
   // Retire TLAB
   if (ZGlobalPhase == ZPhaseMark) {
