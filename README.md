@@ -55,23 +55,22 @@ The allocator separates the storage of data objects and normal objects in data p
 The collector skips marking labeled data objects and excludes data pages from reclamation in GC cycles where data objects are known to be lived, and performs effective reclamation of data pages only after some annotated data objects are released at the framework level.
 
 # Evaluation
-We apply and evaluate BridgeGC with Flink 1.9.3 and Spark 3.3.0. We compare BridgeGC with all available garbage collectors in OpenJDK 16, includes ZGC, Shenandoah, G1, and Parallel. 
+We apply and evaluate BridgeGC with Flink 1.9.3 and Spark 3.3.0. We compare BridgeGC with all available garbage collectors in OpenJDK 16, includes ZGC, G1, and Parallel. 
 <!-- We also compare BridgeGC with a state-of-the-art research work [ROLP](https://rodrigo-bruno.github.io/papers/rbruno-eurosys19.pdf).-->
 ## Flink
-we select three batch machine learning applications that are memory intensive from [Flink examples](https://github.com/apache/flink/tree/master/flink-exa) as the driving workload, including Linear Regression (LR), KMeans (KM) and PageRank (PR). We use the TPC-H benchmark from [Flink end-to-end test](https://github.com/apache/flink/tree/master/flink-end-to-end-tests/flink-tpch-test), and we focus on
-queries that are proved to be shuffle-heavy. For ML applications, we set the heap size of each executor to 32 GB. For the TPC-H benchmark, we set each executor heap size to 16 GB.
+we select five batch machine learning applications that are memory intensive from [Flink examples](https://github.com/apache/flink/tree/master/flink-exa) as the driving workload, including Linear Regression (LR), KMeans (KM), PageRank (PR), Components (CC) and WebLogAnalysis (WA). We also use the TPC-H benchmark suite from [Flink end-to-end test](https://github.com/apache/flink/tree/master/flink-end-to-end-tests/flink-tpch-test).
 
-Results show that BridgeGC reduces concurrent GC time by 23\%-85\% compared to the baseline ZGC. In terms of application execution time, BridgeGC reduces by 4\%-17\% compared to ZGC, and outperforms other evaluated collectors as shown in Figure 6.   
+Results show that BridgeGC reduces concurrent GC time by 28\%-78\% compared to the baseline ZGC. In terms of application execution time, BridgeGC reduces by 2\%-26\% compared to ZGC, and outperforms other evaluated collectors as shown in Figure 6(a).   
 <div align=center>
-<img decoding="async" src="Figures/flink_overall.svg" width="100%">
+<img decoding="async" src="Figures/asplos_flink_overall.svg" width="100%">
 
-**Figure 6: Speedup of evaluated collectors compared to ZGC with Flink Applications.**
+**Figure 6: Speedup of evaluated collectors compared to ZGC with Flink and Spark Workloads.**
 </div>
 
 ## Spark
-We choose five representative ML applications from popular big data benchmark [HiBench](https://github.com/Intel-bigdata/HiBench), including Linear Regression (LR), Support Vector Machine (SVM), Gaussian Mixture Model (GMM), KMeans (KM), and PageRank (PR). We also execute the entire TPC-H benchmark using SparkSQL. Similar to configurations of Flink, we set the heap size of each executor to 32 GB for ML applications, and set each executor heap size to 16 GB for the TPC-H queries.
+We choose five representative ML applications from popular big data benchmark [HiBench](https://github.com/Intel-bigdata/HiBench), including Linear Regression (LR), Support Vector Machine (SVM), Gaussian Mixture Model (GMM), KMeans (KM), and PageRank (PR). We also execute the entire TPC-H benchmark using SparkSQL.
 
-Results show that BridgeGC reduces concurrent GC time by 23\%-52\% compared to the baseline ZGC. In terms of application execution time, BridgeGC reduces by 3.9\%-9.4\% compared to ZGC, and outperforms other evaluated collectors as shown in Figure 7.
+Results show that BridgeGC reduces concurrent GC time by 19\%-46\% compared to the baseline ZGC. In terms of application execution time, BridgeGC reduces by 2\%-10\% compared to ZGC, and outperforms other evaluated collectors as shown in Figure 6(b).
 
 <div align=center>
 <img decoding="async" src="Figures/spark_overall.svg" width="100%">
