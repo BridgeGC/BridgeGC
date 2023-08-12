@@ -71,9 +71,3 @@ Results show that BridgeGC reduces concurrent GC time by 28\%-78\% compared to t
 We choose five representative ML applications from popular big data benchmark [HiBench](https://github.com/Intel-bigdata/HiBench), including Linear Regression (LR), Support Vector Machine (SVM), Gaussian Mixture Model (GMM), KMeans (KM), and PageRank (PR). We also execute the entire TPC-H benchmark using SparkSQL.
 
 Results show that BridgeGC reduces concurrent GC time by 19\%-46\% compared to the baseline ZGC. In terms of application execution time, BridgeGC reduces by 2\%-10\% compared to ZGC, and outperforms other evaluated collectors as shown in Figure 6(b).
-
-<div align=center>
-<img decoding="async" src="Figures/spark_overall.svg" width="100%">
-
-**Figure 7: Speedup of evaluated collectors compared to ZGC with Spark Applications.**
-</div>
