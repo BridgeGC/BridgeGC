@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,6 +39,7 @@
 #include "utilities/powerOfTwo.hpp"
 #include "vmreg_x86.inline.hpp"
 #include "compiler/compileTask.hpp"
+
 #ifdef ASSERT
 #define __ gen()->lir(__FILE__, __LINE__)->
 #else
@@ -249,12 +250,12 @@ bool LIRGenerator::strength_reduce_multiply(LIR_Opr left, jint c, LIR_Opr result
   if (tmp->is_valid() && c > 0 && c < max_jint) {
     if (is_power_of_2(c + 1)) {
       __ move(left, tmp);
-      __ shift_left(left, log2_jint(c + 1), left);
+      __ shift_left(left, log2i_exact(c + 1), left);
       __ sub(left, tmp, result);
       return true;
     } else if (is_power_of_2(c - 1)) {
       __ move(left, tmp);
-      __ shift_left(left, log2_jint(c - 1), left);
+      __ shift_left(left, log2i_exact(c - 1), left);
       __ add(left, tmp, result);
       return true;
     }
@@ -393,7 +394,7 @@ void LIRGenerator::do_ArithmeticOp_FPU(ArithmeticOp* x) {
   }
   LIR_Opr reg = rlock(x);
   LIR_Opr tmp = LIR_OprFact::illegalOpr;
-  if (x->is_strictfp() && (x->op() == Bytecodes::_dmul || x->op() == Bytecodes::_ddiv)) {
+  if (x->op() == Bytecodes::_dmul || x->op() == Bytecodes::_ddiv) {
     tmp = new_register(T_DOUBLE);
   }
 
@@ -429,7 +430,7 @@ void LIRGenerator::do_ArithmeticOp_FPU(ArithmeticOp* x) {
     __ call_runtime_leaf(entry, getThreadTemp(), result_reg, cc->args());
     __ move(result_reg, result);
   } else {
-    arithmetic_op_fpu(x->op(), reg, left.result(), right.result(), x->is_strictfp(), tmp);
+    arithmetic_op_fpu(x->op(), reg, left.result(), right.result(), tmp);
     set_result(x, round_item(reg));
   }
 #else
@@ -449,7 +450,7 @@ void LIRGenerator::do_ArithmeticOp_FPU(ArithmeticOp* x) {
     __ move(fpu0, reg);
 
   } else {
-    arithmetic_op_fpu(x->op(), reg, left.result(), right.result(), x->is_strictfp(), tmp);
+    arithmetic_op_fpu(x->op(), reg, left.result(), right.result(), tmp);
   }
   set_result(x, round_item(reg));
 #endif // _LP64
@@ -1066,10 +1067,6 @@ void LIRGenerator::do_update_CRC32(Intrinsic* x) {
       }
 #endif
 
-      if (is_updateBytes) {
-        base_op = access_resolve(IS_NOT_NULL | ACCESS_READ, base_op);
-      }
-
       LIR_Address* a = new LIR_Address(base_op,
                                        index,
                                        offset,
@@ -1127,7 +1124,7 @@ void LIRGenerator::do_vectorizedMismatch(Intrinsic* x) {
     constant_aOffset = result_aOffset->as_jlong();
     result_aOffset = LIR_OprFact::illegalOpr;
   }
-  LIR_Opr result_a = access_resolve(ACCESS_READ, a.result());
+  LIR_Opr result_a = a.result();
 
   long constant_bOffset = 0;
   LIR_Opr result_bOffset = bOffset.result();
@@ -1135,7 +1132,7 @@ void LIRGenerator::do_vectorizedMismatch(Intrinsic* x) {
     constant_bOffset = result_bOffset->as_jlong();
     result_bOffset = LIR_OprFact::illegalOpr;
   }
-  LIR_Opr result_b = access_resolve(ACCESS_READ, b.result());
+  LIR_Opr result_b = b.result();
 
 #ifndef _LP64
   result_a = new_register(T_INT);
@@ -1277,6 +1274,7 @@ void LIRGenerator::do_NewInstance(NewInstance* x) {
   __ move(reg, result);
 }
 
+
 void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
   CodeEmitInfo* info = state_for(x, x->state());
   bool annotated = this->compilation()->env()->task()->method()->is_annotated();
@@ -1293,14 +1291,15 @@ void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
   BasicType elem_type = x->elt_type();
 
   __ metadata2reg(ciTypeArrayKlass::make(elem_type)->constant_encoding(), klass_reg);
-  CodeStub* slow_path;
 
-  if(annotated){
-      slow_path = new NewTypeKeepArrayStub(klass_reg, len, reg, info, annotated);
-  }
-  else{
-      slow_path = new NewTypeArrayStub(klass_reg, len, reg, info, annotated);
-  }
+    CodeStub* slow_path;
+
+    if(annotated){
+        slow_path = new NewTypeKeepArrayStub(klass_reg, len, reg, info, annotated);
+    }
+    else{
+        slow_path = new NewTypeArrayStub(klass_reg, len, reg, info, annotated);
+    }
 
   __ allocate_array(reg, len, tmp1, tmp2, tmp3, tmp4, elem_type, klass_reg, slow_path, annotated);
 
@@ -1310,7 +1309,7 @@ void LIRGenerator::do_NewTypeArray(NewTypeArray* x) {
 
 
 void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
-  bool annotated = this->compilation()->env()->task()->method()->is_annotated();
+    bool annotated = this->compilation()->env()->task()->method()->is_annotated();
   LIRItem length(x->length(), this);
   // in case of patching (i.e., object class is not yet loaded), we need to reexecute the instruction
   // and therefore provide the state before the parameters have been consumed
@@ -1330,13 +1329,13 @@ void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
 
   length.load_item_force(FrameMap::rbx_opr);
   LIR_Opr len = length.result();
-
-  CodeStub* slow_path;
+    CodeStub* slow_path;
     if(annotated){
         slow_path = new NewObjectKeepArrayStub(klass_reg, len, reg, info);
     }else{
         slow_path = new NewObjectArrayStub(klass_reg, len, reg, info);
     }
+
   ciKlass* obj = (ciKlass*) ciObjArrayKlass::make(x->klass());
   if (obj == ciEnv::unloaded_ciobjarrayklass()) {
     BAILOUT("encountered unloaded_ciobjarrayklass due to out of memory error");

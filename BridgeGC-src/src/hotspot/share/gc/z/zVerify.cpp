@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 #include "precompiled.hpp"
 #include "classfile/classLoaderData.hpp"
+#include "gc/shared/gc_globals.hpp"
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zHeap.inline.hpp"
 #include "gc/z/zNMethod.hpp"
@@ -40,6 +41,7 @@
 #include "runtime/globals.hpp"
 #include "runtime/handles.hpp"
 #include "runtime/safepoint.hpp"
+#include "runtime/stackFrameStream.inline.hpp"
 #include "runtime/stackWatermark.inline.hpp"
 #include "runtime/stackWatermarkSet.inline.hpp"
 #include "runtime/thread.hpp"
@@ -53,7 +55,7 @@ static void z_verify_oop(oop* p) {
   const oop o = RawAccess<>::oop_load(p);
   if (o != NULL) {
     const uintptr_t addr = ZOop::to_address(o);
-    guarantee(ZAddress::is_good(addr) || ZAddress::is_current_keep(addr), BAD_OOP_ARG(o, p));
+    guarantee(ZAddress::is_good(addr), BAD_OOP_ARG(o, p));
     guarantee(oopDesc::is_oop(ZOop::from_address(addr)), BAD_OOP_ARG(o, p));
   }
 }
@@ -137,7 +139,7 @@ public:
   void do_oop(oop* p) {
     if (_verifying_bad_frames) {
       const oop obj = *p;
-      guarantee(!ZAddress::is_pure_good(ZOop::to_address(obj)), BAD_OOP_ARG(obj, p));
+      guarantee(!ZAddress::is_good(ZOop::to_address(obj)), BAD_OOP_ARG(obj, p));
     }
     _cl->do_oop(p);
   }
@@ -358,7 +360,8 @@ class ZVerifyBadOopClosure : public OopClosure {
 public:
   virtual void do_oop(oop* p) {
     const oop o = *p;
-    assert(!ZAddress::is_good(ZOop::to_address(o)) || ZAddress::is_oneof_keep(ZOop::to_address(o)), "Should not be good: " PTR_FORMAT, p2i(o));
+    const uintptr_t addr = ZOop::to_address(o);
+    assert(!ZAddress::is_good(ZOop::to_address(o)) || ZAddress::is_current_keep(addr), "Should not be good: " PTR_FORMAT, p2i(o));
   }
 
   virtual void do_oop(narrowOop* p) {

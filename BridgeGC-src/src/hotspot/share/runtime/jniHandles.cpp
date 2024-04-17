@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/oopStorage.inline.hpp"
 #include "gc/shared/oopStorageSet.hpp"
 #include "logging/log.hpp"
@@ -50,8 +51,8 @@ OopStorage* JNIHandles::_global_handles = NULL;
 OopStorage* JNIHandles::_weak_global_handles = NULL;
 
 void jni_handles_init() {
-  JNIHandles::_global_handles = OopStorageSet::create_strong("JNI Global",false);
-  JNIHandles::_weak_global_handles = OopStorageSet::create_weak("JNI Weak");
+  JNIHandles::_global_handles = OopStorageSet::create_strong("JNI Global", false, mtInternal);
+  JNIHandles::_weak_global_handles = OopStorageSet::create_weak("JNI Weak", false, mtInternal);
 }
 
 jobject JNIHandles::make_local(oop obj) {

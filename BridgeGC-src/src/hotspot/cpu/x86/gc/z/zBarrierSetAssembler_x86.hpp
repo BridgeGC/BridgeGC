@@ -56,7 +56,8 @@ public:
                        Address src,
                        Register tmp1,
                        Register tmp_thread);
-// #ifdef ASSERT
+
+#ifdef ASSERT
   virtual void store_at(MacroAssembler* masm,
                         DecoratorSet decorators,
                         BasicType type,
@@ -64,7 +65,8 @@ public:
                         Register src,
                         Register tmp1,
                         Register tmp2);
-// #endif // ASSERT
+#endif // ASSERT
+
   virtual void arraycopy_prologue(MacroAssembler* masm,
                                   DecoratorSet decorators,
                                   BasicType type,
@@ -83,19 +85,19 @@ public:
                                      LIR_Opr ref) const;
 
   void generate_c1_load_barrier_keep_test(LIR_Assembler* ce,
-                                       LIR_Opr ref) const;
+                                            LIR_Opr ref) const;
 
   void generate_c1_load_barrier_stub(LIR_Assembler* ce,
                                      ZLoadBarrierStubC1* stub) const;
 
-  void generate_c1_keep_barrier_stub(LIR_Assembler* ce,
-                                     ZKeepBarrierStubC1* stub) const;
+    void generate_c1_keep_barrier_stub(LIR_Assembler* ce,
+                                       ZKeepBarrierStubC1* stub) const;
 
   void generate_c1_load_barrier_runtime_stub(StubAssembler* sasm,
                                              DecoratorSet decorators) const;
 
-  void generate_c1_keep_barrier_runtime_stub(StubAssembler* sasm,
-                                             DecoratorSet decorators) const;
+    void generate_c1_keep_barrier_runtime_stub(StubAssembler* sasm,
+                                               DecoratorSet decorators) const;
 #endif // COMPILER1
 
 #ifdef COMPILER2
@@ -104,7 +106,8 @@ public:
 
   void generate_c2_load_barrier_stub(MacroAssembler* masm,
                                      ZLoadBarrierStubC2* stub) const;
-    void generate_c2_keep_barrier_stub(MacroAssembler* masm,
+
+  void generate_c2_keep_barrier_stub(MacroAssembler* masm,
                                        ZKeepBarrierStubC2* stub) const;
 #endif // COMPILER2
 };

@@ -44,7 +44,7 @@ import jdk.internal.vm.annotation.ForceInline;
  * @modules jdk.incubator.vector
  * @modules java.base/jdk.internal.vm.annotation
  * @run testng/othervm -XX:CompileCommand=compileonly,jdk/incubator/vector/ByteVector.fromByteBuffer
- *      -XX:-TieredCompilation -XX:CICompilerCount=1 -XX:+UseBridgeGC -Xbatch -Xmx256m VectorRebracket128Test
+ *      -XX:-TieredCompilation -XX:CICompilerCount=1 -XX:+UseZGC -Xbatch -Xmx256m VectorRebracket128Test
  */
 
 @Test

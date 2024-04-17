@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@
 #include "code/vmreg.inline.hpp"
 #include "compiler/abstractCompiler.hpp"
 #include "compiler/disassembler.hpp"
+#include "compiler/oopMap.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/oopMapCache.hpp"
@@ -157,7 +158,7 @@ void frame::set_pc(address   newpc ) {
   }
 #endif // ASSERT
 
-  // Unsafe to use the is_deoptimzed tester after changing pc
+  // Unsafe to use the is_deoptimized tester after changing pc
   _deopt_state = unknown;
   _pc = newpc;
   _cb = CodeCache::find_blob_unsafe(_pc);
@@ -306,14 +307,6 @@ frame frame::java_sender() const {
   for (s = sender(&map); !(s.is_java_frame() || s.is_first_frame()); s = s.sender(&map)) ;
   guarantee(s.is_java_frame(), "tried to get caller of first java frame");
   return s;
-}
-
-frame frame::interpreter_sender() const {
-    RegisterMap map(JavaThread::current(), false);
-    frame s;
-    for (s = sender(&map); !(s.is_interpreted_frame() || s.is_first_frame()); s = s.sender(&map)) ;
-    guarantee(s.is_java_frame(), "tried to get caller of first java frame");
-    return s;
 }
 
 frame frame::real_sender(RegisterMap* map) const {
@@ -548,9 +541,11 @@ void frame::print_C_frame(outputStream* st, char* buf, int buflen, address pc) {
   int offset;
   bool found;
 
+  if (buf == NULL || buflen < 1) return;
   // libname
+  buf[0] = '\0';
   found = os::dll_address_to_library_name(pc, buf, buflen, &offset);
-  if (found) {
+  if (found && buf[0] != '\0') {
     // skip directory names
     const char *p1, *p2;
     p1 = buf;
@@ -573,7 +568,6 @@ void frame::print_C_frame(outputStream* st, char* buf, int buflen, address pc) {
 //
 // First letter indicates type of the frame:
 //    J: Java frame (compiled)
-//    A: Java frame (aot compiled)
 //    j: Java frame (interpreted)
 //    V: VM frame (C/C++)
 //    v: Other frames running VM generated code (e.g. stubs, adapters, etc.)
@@ -615,9 +609,7 @@ void frame::print_on_error(outputStream* st, char* buf, int buflen, bool verbose
       CompiledMethod* cm = (CompiledMethod*)_cb;
       Method* m = cm->method();
       if (m != NULL) {
-        if (cm->is_aot()) {
-          st->print("A %d ", cm->compile_id());
-        } else if (cm->is_nmethod()) {
+        if (cm->is_nmethod()) {
           nmethod* nm = cm->as_nmethod();
           st->print("J %d%s", nm->compile_id(), (nm->is_osr_method() ? "%" : ""));
           st->print(" %s", nm->compiler_name());
@@ -948,7 +940,7 @@ class CompiledArgumentOopFinder: public SignatureIterator {
     // Extract low order register number from register array.
     // In LP64-land, the high-order bits are valid but unhelpful.
     VMReg reg = _regs[_offset].first();
-    oop *loc = _fr.oopmapreg_to_location(reg, _reg_map);
+    oop *loc = _fr.oopmapreg_to_oop_location(reg, _reg_map);
     assert(loc != NULL, "missing register map entry");
     _f->do_oop(loc);
   }
@@ -1003,7 +995,7 @@ oop frame::retrieve_receiver(RegisterMap* reg_map) {
 
   // First consult the ADLC on where it puts parameter 0 for this signature.
   VMReg reg = SharedRuntime::name_for_receiver();
-  oop* oop_adr = caller.oopmapreg_to_location(reg, reg_map);
+  oop* oop_adr = caller.oopmapreg_to_oop_location(reg, reg_map);
   if (oop_adr == NULL) {
     guarantee(oop_adr != NULL, "bad register save location");
     return NULL;
@@ -1075,6 +1067,8 @@ void frame::oops_do_internal(OopClosure* f, CodeBlobClosure* cf, const RegisterM
     oops_interpreted_do(f, map, use_interpreter_oop_map_cache);
   } else if (is_entry_frame()) {
     oops_entry_do(f, map);
+  } else if (is_optimized_entry_frame()) {
+    _cb->as_optimized_entry_blob()->oops_do(f, *this);
   } else if (CodeCache::contains(pc())) {
     oops_code_blob_do(f, cf, map, derived_mode);
   } else {
@@ -1113,7 +1107,9 @@ void frame::verify(const RegisterMap* map) const {
 #if COMPILER2_OR_JVMCI
   assert(DerivedPointerTable::is_empty(), "must be empty before verify");
 #endif
-  oops_do_internal(&VerifyOopClosure::verify_oop, NULL, map, false, DerivedPointerIterationMode::_ignore);
+  if (map->update_map()) { // The map has to be up-to-date for the current frame
+    oops_do_internal(&VerifyOopClosure::verify_oop, NULL, map, false, DerivedPointerIterationMode::_ignore);
+  }
 }
 
 
@@ -1214,9 +1210,8 @@ void frame::describe(FrameValues& values, int frame_no) {
     // For now just label the frame
     CompiledMethod* cm = (CompiledMethod*)cb();
     values.describe(-1, info_address,
-                    FormatBuffer<1024>("#%d nmethod " INTPTR_FORMAT " for method %s%s%s", frame_no,
+                    FormatBuffer<1024>("#%d nmethod " INTPTR_FORMAT " for method J %s%s", frame_no,
                                        p2i(cm),
-                                       (cm->is_aot() ? "A ": "J "),
                                        cm->method()->name_and_sig_as_C_string(),
                                        (_deopt_state == is_deoptimized) ?
                                        " (deoptimized)" :
@@ -1243,17 +1238,6 @@ void frame::describe(FrameValues& values, int frame_no) {
 }
 
 #endif
-
-
-//-----------------------------------------------------------------------------------
-// StackFrameStream implementation
-
-StackFrameStream::StackFrameStream(JavaThread *thread, bool update, bool process_frames) : _reg_map(thread, update, process_frames) {
-  assert(thread->has_last_Java_frame(), "sanity check");
-  _fr = thread->last_frame();
-  _is_done = false;
-}
-
 
 #ifndef PRODUCT
 

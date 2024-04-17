@@ -130,7 +130,7 @@ public class HashNode<K,V> implements Map.Entry<K,V>{
         final K key;
         V value;
         HashNode<K,V> next;
-		
+
 	/**
      * Constructs an empty array deque with an initial capacity
      * sufficient to hold the specified number of elements.

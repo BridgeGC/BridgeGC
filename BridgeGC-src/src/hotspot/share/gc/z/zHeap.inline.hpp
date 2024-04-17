@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,10 +24,11 @@
 #ifndef SHARE_GC_Z_ZHEAP_INLINE_HPP
 #define SHARE_GC_Z_ZHEAP_INLINE_HPP
 
+#include "gc/z/zHeap.hpp"
+
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zForwardingTable.inline.hpp"
 #include "gc/z/zHash.inline.hpp"
-#include "gc/z/zHeap.hpp"
 #include "gc/z/zMark.inline.hpp"
 #include "gc/z/zPage.inline.hpp"
 #include "gc/z/zPageTable.inline.hpp"
@@ -43,19 +44,9 @@ inline ReferenceDiscoverer* ZHeap::reference_discoverer() {
 }
 
 inline bool ZHeap::is_object_in_keep(uintptr_t addr){
-//    if(!ZAddress::is_in(addr))
-//        return false;
     ZPage* page = _page_table.get(addr);
-    if(page!=NULL && page->is_keep())
-        return true;
-    else
-        return false;
+    return (page!=NULL && page->is_keep());
 }
-
-/*inline void ZHeap::setDirect(uintptr_t addr){
-    ZPage* page = _page_table.get(addr);
-    page->set_direct(true);
-}*/
 
 inline uint32_t ZHeap::hash_oop(uintptr_t addr) const {
   const uintptr_t offset = ZAddress::offset(addr);
@@ -67,33 +58,20 @@ inline bool ZHeap::is_object_live(uintptr_t addr) const {
   return page->is_object_live(addr);
 }
 
-inline bool ZHeap::page_is_marked(uintptr_t addr) const {
-    ZPage* page = _page_table.get(addr);
-    bool result = page->is_allocating()?true:page->is_marked();
-    if(result) {
-        bool check = page->is_allocating();
-        //log_info(gc, heap)("No need!");
-    }
-    return result;
-}
-
 inline bool ZHeap::is_object_strongly_live(uintptr_t addr) const {
   ZPage* page = _page_table.get(addr);
   return page->is_object_strongly_live(addr);
 }
 
-template <bool follow, bool finalizable, bool publish>
+template <bool gc_thread, bool follow, bool finalizable, bool publish>
 inline void ZHeap::mark_object(uintptr_t addr) {
   assert(ZGlobalPhase == ZPhaseMark, "Mark not allowed");
-  /*if(_page_table.get(addr)->is_keep()){
-      return;
-  }*/
-  _mark.mark_object<follow, finalizable, publish>(addr);
+  _mark.mark_object<gc_thread, follow, finalizable, publish>(addr);
 }
 
 inline uintptr_t ZHeap::alloc_tlab(size_t size) {
   guarantee(size <= max_tlab_size(), "TLAB too large");
-  return _object_allocator.alloc_object(size,0);
+  return _object_allocator.alloc_object(size,false);
 }
 
 inline uintptr_t ZHeap::alloc_tklab(size_t size) {
@@ -112,19 +90,15 @@ inline uintptr_t ZHeap::alloc_object(size_t size, bool annotated) {
   return addr;
 }
 
-inline uintptr_t ZHeap::alloc_object_non_blocking(size_t size) {
-  uintptr_t addr = _object_allocator.alloc_object_non_blocking(size);
+inline uintptr_t ZHeap::alloc_object_for_relocation(size_t size) {
+  const uintptr_t addr = _object_allocator.alloc_object_for_relocation(&_page_table, size);
   assert(ZAddress::is_good_or_null(addr), "Bad address");
   return addr;
 }
 
-inline uintptr_t ZHeap::alloc_keep_object_non_blocking(size_t size) {
-    return _object_allocator.alloc_keep_object_non_blocking(size);
-}
-
-inline void ZHeap::undo_alloc_object(uintptr_t addr, size_t size) {
+inline void ZHeap::undo_alloc_object_for_relocation(uintptr_t addr, size_t size) {
   ZPage* const page = _page_table.get(addr);
-  _object_allocator.undo_alloc_object(page, addr, size);
+  _object_allocator.undo_alloc_object_for_relocation(page, addr, size);
 }
 
 inline uintptr_t ZHeap::relocate_object(uintptr_t addr) {
@@ -154,8 +128,8 @@ inline uintptr_t ZHeap::remap_object(uintptr_t addr) {
   return _relocate.forward_object(forwarding, ZAddress::good(addr));
 }
 
-inline bool ZHeap::is_alloc_stalled() const {
-  return _page_allocator.is_alloc_stalled();
+inline bool ZHeap::has_alloc_stalled() const {
+  return _page_allocator.has_alloc_stalled();
 }
 
 inline void ZHeap::check_out_of_memory() {

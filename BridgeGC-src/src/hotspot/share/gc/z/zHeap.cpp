@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,9 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/gc_globals.hpp"
 #include "gc/shared/locationPrinter.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zArray.inline.hpp"
 #include "gc/z/zGlobals.hpp"
@@ -38,16 +40,19 @@
 #include "gc/z/zStat.hpp"
 #include "gc/z/zThread.inline.hpp"
 #include "gc/z/zVerify.hpp"
-#include "gc/z/zWorkers.inline.hpp"
+#include "gc/z/zWorkers.hpp"
 #include "logging/log.hpp"
 #include "memory/iterator.hpp"
+#include "memory/metaspaceUtils.hpp"
 #include "memory/resourceArea.hpp"
 #include "prims/jvmtiTagMap.hpp"
 #include "runtime/handshake.hpp"
 #include "runtime/safepoint.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/debug.hpp"
+#include "zDriver.hpp"
 #include "zCollectedHeap.hpp"
+
 
 static const ZStatCounter ZCounterUndoPageAllocation("Memory", "Undo Page Allocation", ZStatUnitOpsPerSecond);
 static const ZStatCounter ZCounterOutOfMemory("Memory", "Out Of Memory", ZStatUnitOpsPerSecond);
@@ -140,25 +145,19 @@ bool ZHeap::is_in(uintptr_t addr) const {
   if (ZAddress::is_in(addr)) {
     const ZPage* const page = _page_table.get(addr);
     if (page != NULL) {
-        if(page->is_in(addr))
-            return true;
-        else
-            return page->is_in(addr);
+      return page->is_in(addr);
     }
   }
+
   return false;
 }
 
-uint ZHeap::nconcurrent_worker_threads() const {
-  return _workers.nconcurrent();
+uint ZHeap::active_workers() const {
+  return _workers.active_workers();
 }
 
-uint ZHeap::nconcurrent_no_boost_worker_threads() const {
-  return _workers.nconcurrent_no_boost();
-}
-
-void ZHeap::set_boost_worker_threads(bool boost) {
-  _workers.set_boost(boost);
+void ZHeap::set_active_workers(uint nworkers) {
+  _workers.set_active_workers(nworkers);
 }
 
 void ZHeap::threads_do(ThreadClosure* tc) const {
@@ -176,8 +175,8 @@ void ZHeap::out_of_memory() {
 ZPage* ZHeap::alloc_page(uint8_t type, size_t size, ZAllocationFlags flags) {
   ZPage* const page = _page_allocator.alloc_page(type, size, flags);
   if (page != NULL) {
-    if(flags.Keep_alloc())
-        page->set_keep(true);
+      if(flags.Keep_alloc())
+          page->set_keep(true);
     // Insert page table entry
     _page_table.insert(page);
   }
@@ -294,6 +293,10 @@ bool ZHeap::mark_end() {
   return true;
 }
 
+void ZHeap::mark_free() {
+  _mark.free();
+}
+
 void ZHeap::keep_alive(oop obj) {
   ZBarrier::keep_alive_barrier_on_oop(obj);
 }
@@ -364,20 +367,18 @@ void ZHeap::select_relocation_set() {
   ZRelocationSetSelector selector;
   ZPageTableIterator pt_iter(&_page_table);
   for (ZPage* page; pt_iter.next(&page);) {
-    if ((page->is_keep() && !ZDriver::KeepPermit) || !page->is_relocatable()){
+    if ((page->is_keep() && !ZDriver::KeepPermit) ||!page->is_relocatable()) {
       // Not relocatable, don't register
       continue;
     }
+
     if (page->is_marked()) {
       // Register live page
-      if(page->is_keep()){
-          continue;
-      }
+        if(page->is_keep()){
+            continue;
+        }
       selector.register_live_page(page);
     } else {
-        /*if(page->is_keep()){
-            log_info(gc, heap)("Release Keep Page!!!");
-        }*/
       // Register empty page
       selector.register_empty_page(page);
 
@@ -401,10 +402,6 @@ void ZHeap::select_relocation_set() {
   // Setup forwarding table
   ZRelocationSetIterator rs_iter(&_relocation_set);
   for (ZForwarding* forwarding; rs_iter.next(&forwarding);) {
-      /*if(forwarding->keep())
-          log_info(gc, heap)("reclaim Keep!!!");*/
-      /*if(forwarding->keep())
-          forwarding->set_keep();*/
     _forwarding_table.insert(forwarding);
   }
 
@@ -448,7 +445,7 @@ void ZHeap::relocate() {
   _relocate.relocate(&_relocation_set);
 
   // Update statistics
-  ZStatHeap::set_at_relocate_end(_page_allocator.stats());
+  ZStatHeap::set_at_relocate_end(_page_allocator.stats(), _object_allocator.relocated());
 }
 
 void ZHeap::object_iterate(ObjectClosure* cl, bool visit_weaks) {
@@ -474,8 +471,12 @@ void ZHeap::serviceability_initialize() {
   _serviceability.initialize();
 }
 
-GCMemoryManager* ZHeap::serviceability_memory_manager() {
-  return _serviceability.memory_manager();
+GCMemoryManager* ZHeap::serviceability_cycle_memory_manager() {
+  return _serviceability.cycle_memory_manager();
+}
+
+GCMemoryManager* ZHeap::serviceability_pause_memory_manager() {
+  return _serviceability.pause_memory_manager();
 }
 
 MemoryPool* ZHeap::serviceability_memory_pool() {
@@ -509,7 +510,7 @@ void ZHeap::print_extended_on(outputStream* st) const {
   }
 
   // Allow pages to be deleted
-  _page_allocator.enable_deferred_delete();
+  _page_allocator.disable_deferred_delete();
 }
 
 bool ZHeap::print_location(outputStream* st, uintptr_t addr) const {

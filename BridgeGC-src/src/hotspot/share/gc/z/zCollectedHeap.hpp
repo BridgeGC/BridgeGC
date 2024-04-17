@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,8 +44,8 @@ private:
   ZBarrierSet       _barrier_set;
   ZInitialize       _initialize;
   ZHeap             _heap;
-  ZDirector*        _director;
   ZDriver*          _driver;
+  ZDirector*        _director;
   ZStat*            _stat;
   ZRuntimeWorkers   _runtime_workers;
   size_t             _KeepCount;
@@ -54,6 +54,7 @@ private:
   virtual HeapWord* allocate_new_tlab(size_t min_size,
                                       size_t requested_size,
                                       size_t* actual_size);
+
   virtual HeapWord* allocate_new_tklab(size_t* actual_size);
 
 public:

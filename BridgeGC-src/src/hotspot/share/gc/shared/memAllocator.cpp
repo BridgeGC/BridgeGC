@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,13 +22,14 @@
  *
  */
 
-#include "gc/z/zUtils.inline.hpp"
+#include <gc/z/zUtils.hpp>
 #include "precompiled.hpp"
 #include "classfile/javaClasses.hpp"
 #include "gc/shared/allocTracer.hpp"
 #include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/memAllocator.hpp"
 #include "gc/shared/threadLocalAllocBuffer.inline.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "memory/universe.hpp"
 #include "oops/arrayOop.hpp"
 #include "oops/oop.inline.hpp"
@@ -44,7 +45,7 @@ class MemAllocator::Allocation: StackObj {
   friend class MemAllocator;
 
   const MemAllocator& _allocator;
-  Thread*             _thread;
+  JavaThread*         _thread;
   oop*                _obj_ptr;
   bool                _overhead_limit_exceeded;
   bool                _allocated_outside_tlab;
@@ -55,7 +56,6 @@ class MemAllocator::Allocation: StackObj {
   void verify_before();
   void verify_after();
   void notify_allocation();
-  void notify_allocation_jvmti_allocation_event();
   void notify_allocation_jvmti_sampler();
   void notify_allocation_low_memory_detector();
   void notify_allocation_jfr_sampler();
@@ -70,7 +70,7 @@ class MemAllocator::Allocation: StackObj {
 public:
   Allocation(const MemAllocator& allocator, oop* obj_ptr)
     : _allocator(allocator),
-      _thread(Thread::current()),
+      _thread(JavaThread::current()),
       _obj_ptr(obj_ptr),
       _overhead_limit_exceeded(false),
       _allocated_outside_tlab(false),
@@ -96,7 +96,7 @@ class MemAllocator::Allocation::PreserveObj: StackObj {
   oop* const _obj_ptr;
 
 public:
-  PreserveObj(Thread* thread, oop* obj_ptr)
+  PreserveObj(JavaThread* thread, oop* obj_ptr)
     : _handle_mark(thread),
       _handle(thread, *obj_ptr),
       _obj_ptr(obj_ptr)
@@ -114,7 +114,7 @@ public:
 };
 
 bool MemAllocator::Allocation::check_out_of_memory() {
-  Thread* THREAD = _thread;
+  JavaThread* THREAD = _thread; // For exception macros.
   assert(!HAS_PENDING_EXCEPTION, "Unexpected exception, will result in uninitialized storage");
 
   if (obj() != NULL) {
@@ -122,7 +122,7 @@ bool MemAllocator::Allocation::check_out_of_memory() {
   }
 
   const char* message = _overhead_limit_exceeded ? "GC overhead limit exceeded" : "Java heap space";
-  if (!THREAD->in_retryable_allocation()) {
+  if (!_thread->in_retryable_allocation()) {
     // -XX:+HeapDumpOnOutOfMemoryError and -XX:OnOutOfMemoryError support
     report_java_out_of_memory(message);
 
@@ -143,7 +143,7 @@ bool MemAllocator::Allocation::check_out_of_memory() {
 void MemAllocator::Allocation::verify_before() {
   // Clear unhandled oops for memory allocation.  Memory allocation might
   // not take out a lock if from tlab, so clear here.
-  Thread* THREAD = _thread;
+  JavaThread* THREAD = _thread; // For exception macros.
   assert(!HAS_PENDING_EXCEPTION, "Should not allocate with exception pending");
   debug_only(check_for_valid_allocation_state());
   assert(!Universe::heap()->is_gc_active(), "Allocation during gc not allowed");
@@ -173,7 +173,7 @@ void MemAllocator::Allocation::check_for_valid_allocation_state() const {
   assert(!_thread->has_pending_exception(),
          "shouldn't be allocating with pending exception");
   // Allocation of an oop can always invoke a safepoint.
-  _thread->check_for_valid_safepoint_state();
+  _thread->as_Java_thread()->check_for_valid_safepoint_state();
 }
 #endif
 
@@ -253,45 +253,44 @@ void MemAllocator::Allocation::notify_allocation() {
 }
 
 HeapWord* MemAllocator::allocate_outside_tlab(Allocation& allocation, bool annotated) const {
-  allocation._allocated_outside_tlab = true;
-  HeapWord* mem = Universe::heap()->mem_allocate(_word_size, &allocation._overhead_limit_exceeded, annotated);
-  if (mem == NULL) {
+    allocation._allocated_outside_tlab = true;
+    HeapWord* mem = Universe::heap()->mem_allocate(_word_size, &allocation._overhead_limit_exceeded, annotated);
+    if (mem == NULL) {
+        return mem;
+    }
+
+    NOT_PRODUCT(Universe::heap()->check_for_non_bad_heap_word_value(mem, _word_size));
+    size_t size_in_bytes = _word_size * HeapWordSize;
+    _thread->incr_allocated_bytes(size_in_bytes);
+
     return mem;
-  }
-
-  NOT_PRODUCT(Universe::heap()->check_for_non_bad_heap_word_value(mem, _word_size));
-  size_t size_in_bytes = _word_size * HeapWordSize;
-  _thread->incr_allocated_bytes(size_in_bytes);
-
-  return mem;
 }
 
 HeapWord* MemAllocator::allocate_inside_tlab(Allocation& allocation, bool annotated) const {
-  assert(UseTLAB, "should use UseTLAB");
+    assert(UseTLAB, "should use UseTLAB");
 
-  // Try allocating from an existing TLAB.
-  HeapWord* mem;
-  if(annotated){
-      mem = _thread->tklab().allocate(_word_size);
-      if (mem != NULL) {
-          return mem;
-      }
-      // Try refilling the TLAB and allocating the object in it.
-      return allocate_inside_tklab_slow(allocation);
-  }
+    // Try allocating from an existing TLAB.
+    HeapWord* mem;
+    if(annotated){
+        mem = _thread->tklab().allocate(_word_size);
+        if (mem != NULL) {
+            return mem;
+        }
+        // Try refilling the TLAB and allocating the object in it.
+        return allocate_inside_tklab_slow(allocation);
+    }
 
-  else{
-      mem = _thread->tlab().allocate(_word_size);
-      if (mem != NULL) {
-          return mem;
-      }
-      return allocate_inside_tlab_slow(allocation);
-  }
+    else{
+        mem = _thread->tlab().allocate(_word_size);
+        if (mem != NULL) {
+            return mem;
+        }
+        return allocate_inside_tlab_slow(allocation);
+    }
 }
 
 HeapWord* MemAllocator::allocate_inside_tlab_slow(Allocation& allocation) const {
   HeapWord* mem = NULL;
-
   ThreadLocalAllocBuffer& tlab = _thread->tlab();
 
   if (JvmtiExport::should_post_sampled_object_alloc()) {
@@ -414,7 +413,7 @@ HeapWord* MemAllocator::allocate_inside_tklab_slow(Allocation& allocation) const
 
 HeapWord* MemAllocator::mem_allocate(Allocation& allocation, bool annotated) const {
   if (UseTLAB) {
-    HeapWord* result = allocate_inside_tlab(allocation , annotated);
+    HeapWord* result = allocate_inside_tlab(allocation, annotated);
     if (result != NULL) {
       return result;
     }
@@ -459,7 +458,7 @@ oop MemAllocator::finish(HeapWord* mem) const {
   // object zeroing are visible before setting the klass non-NULL, for
   // concurrent collectors.
   oopDesc::release_set_klass(mem, _klass);
-  return oop(mem);
+  return cast_to_oop(mem);
 }
 
 oop ObjAllocator::initialize(HeapWord* mem) const {

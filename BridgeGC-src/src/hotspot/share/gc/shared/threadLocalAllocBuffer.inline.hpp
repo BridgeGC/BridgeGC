@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,18 +25,20 @@
 #ifndef SHARE_GC_SHARED_THREADLOCALALLOCBUFFER_INLINE_HPP
 #define SHARE_GC_SHARED_THREADLOCALALLOCBUFFER_INLINE_HPP
 
-#include "gc/shared/collectedHeap.hpp"
 #include "gc/shared/threadLocalAllocBuffer.hpp"
+
+#include "gc/shared/collectedHeap.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "memory/universe.hpp"
 #include "logging/log.hpp"
+#include "runtime/osThread.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/copy.hpp"
 
 inline HeapWord* ThreadLocalAllocBuffer::allocate(size_t size) {
   invariants();
   HeapWord* obj = top();
-  size_t left = pointer_delta(end(), obj);
-  if (left >= size) {
+  if (pointer_delta(end(), obj) >= size) {
     // successful thread-local allocation
 #ifdef ASSERT
     // Skip mangling the space corresponding to the object header to

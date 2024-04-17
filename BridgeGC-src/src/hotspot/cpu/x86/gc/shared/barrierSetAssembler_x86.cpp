@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/classLoaderData.hpp"
 #include "gc/shared/barrierSet.hpp"
 #include "gc/shared/barrierSetAssembler.hpp"
 #include "gc/shared/barrierSetNMethod.hpp"
@@ -31,6 +32,7 @@
 #include "memory/universe.hpp"
 #include "runtime/jniHandles.hpp"
 #include "runtime/sharedRuntime.hpp"
+#include "runtime/stubRoutines.hpp"
 #include "runtime/thread.hpp"
 
 #define __ masm->
@@ -193,39 +195,18 @@ void BarrierSetAssembler::store_at(MacroAssembler* masm, DecoratorSet decorators
   }
 }
 
-#ifndef _LP64
-void BarrierSetAssembler::obj_equals(MacroAssembler* masm,
-                                     Address obj1, jobject obj2) {
-  __ cmpoop_raw(obj1, obj2);
-}
-
-void BarrierSetAssembler::obj_equals(MacroAssembler* masm,
-                                     Register obj1, jobject obj2) {
-  __ cmpoop_raw(obj1, obj2);
-}
-#endif
-void BarrierSetAssembler::obj_equals(MacroAssembler* masm,
-                                     Register obj1, Address obj2) {
-  __ cmpptr(obj1, obj2);
-}
-
-void BarrierSetAssembler::obj_equals(MacroAssembler* masm,
-                                     Register obj1, Register obj2) {
-  __ cmpptr(obj1, obj2);
-}
-
 void BarrierSetAssembler::try_resolve_jobject_in_native(MacroAssembler* masm, Register jni_env,
                                                         Register obj, Register tmp, Label& slowpath) {
   __ clear_jweak_tag(obj);
   __ movptr(obj, Address(obj, 0));
 }
 void BarrierSetAssembler::tklab_allocate(MacroAssembler* masm,
-                                        Register thread, Register obj,
-                                        Register var_size_in_bytes,
-                                        int con_size_in_bytes,
-                                        Register t1,
-                                        Register t2,
-                                        Label& slow_case) {
+                                         Register thread, Register obj,
+                                         Register var_size_in_bytes,
+                                         int con_size_in_bytes,
+                                         Register t1,
+                                         Register t2,
+                                         Label& slow_case) {
     assert_different_registers(obj, t1, t2);
     assert_different_registers(obj, var_size_in_bytes, t1);
     Register end = t2;
@@ -258,6 +239,7 @@ void BarrierSetAssembler::tklab_allocate(MacroAssembler* masm,
     __ verify_tklab();
 
 }
+
 void BarrierSetAssembler::tlab_allocate(MacroAssembler* masm,
                                         Register thread, Register obj,
                                         Register var_size_in_bytes,
@@ -277,6 +259,7 @@ void BarrierSetAssembler::tlab_allocate(MacroAssembler* masm,
     __ get_thread(thread);
 #endif
   }
+
   __ verify_tlab();
 
   __ movptr(obj, Address(thread, JavaThread::tlab_top_offset()));
@@ -290,6 +273,7 @@ void BarrierSetAssembler::tlab_allocate(MacroAssembler* masm,
 
   // update the tlab top pointer
   __ movptr(Address(thread, JavaThread::tlab_top_offset()), end);
+
   // recover var_size_in_bytes if necessary
   if (var_size_in_bytes == end) {
     __ subptr(var_size_in_bytes, obj);

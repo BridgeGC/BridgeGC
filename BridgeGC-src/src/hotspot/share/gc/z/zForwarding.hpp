@@ -48,8 +48,8 @@ private:
   ZPage*                 _page;
   mutable ZConditionLock _ref_lock;
   volatile int32_t       _ref_count;
+  bool                   _ref_abort;
   bool                   _in_place;
-  bool                   _is_keep;
 
   ZForwardingEntry* entries() const;
   ZForwardingEntry at(ZForwardingCursor* cursor) const;
@@ -63,9 +63,6 @@ public:
   static ZForwarding* alloc(ZForwardingAllocator* allocator, ZPage* page);
 
   uint8_t type() const;
-  bool keep() const;
-  bool is_keep() const;
-  void set_keep();
   uintptr_t start() const;
   size_t size() const;
   size_t object_alignment_shift() const;
@@ -74,8 +71,9 @@ public:
   bool retain_page();
   ZPage* claim_page();
   void release_page();
-  void wait_page_released() const;
+  bool wait_page_released() const;
   ZPage* detach_page();
+  void abort_page();
 
   void set_in_place();
   bool in_place() const;

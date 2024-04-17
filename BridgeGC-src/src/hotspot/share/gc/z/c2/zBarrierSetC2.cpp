@@ -39,6 +39,7 @@
 #include "opto/output.hpp"
 #include "opto/regalloc.hpp"
 #include "opto/rootnode.hpp"
+#include "opto/runtime.hpp"
 #include "opto/type.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/macros.hpp"
@@ -63,7 +64,7 @@ public:
         return _keep_stubs;
     }
 
-  RegMask* live(const Node* node) {
+    RegMask* live(const Node* node) {
     if (!node->is_Mach()) {
       // Don't need liveness for non-MachNodes
       return NULL;
@@ -241,6 +242,7 @@ void ZBarrierSetC2::emit_stubs(CodeBuffer& cb) const {
 
         ZBarrierSet::assembler()->generate_c2_keep_barrier_stub(&masm, keep_stubs->at(i));
     }
+
   masm.flush();
 }
 
@@ -270,72 +272,27 @@ int ZBarrierSetC2::estimate_stub_size() const {
 
 static void set_barrier_data(C2Access& access) {
   if (ZBarrierSet::barrier_needed(access.decorators(), access.type())) {
-    if (access.decorators() & ON_WEAK_OOP_REF) {
-      access.set_barrier_data(ZLoadBarrierWeak);
+    uint8_t barrier_data = 0;
+
+    if (access.decorators() & ON_PHANTOM_OOP_REF) {
+      barrier_data |= ZLoadBarrierPhantom;
+    } else if (access.decorators() & ON_WEAK_OOP_REF) {
+      barrier_data |= ZLoadBarrierWeak;
     } else {
-      access.set_barrier_data(ZLoadBarrierStrong);
+      barrier_data |= ZLoadBarrierStrong;
     }
+
+    if (access.decorators() & AS_NO_KEEPALIVE) {
+      barrier_data |= ZLoadBarrierNoKeepalive;
+    }
+
+    access.set_barrier_data(barrier_data);
   }
 }
 
 Node* ZBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) const {
   set_barrier_data(access);
   return BarrierSetC2::load_at_resolved(access, val_type);
-}
-
-Node* ZBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) const {
-    set_barrier_data(access);
-    DecoratorSet decorators = access.decorators();
-
-    bool mismatched = (decorators & C2_MISMATCHED) != 0;
-    bool unaligned = (decorators & C2_UNALIGNED) != 0;
-    bool unsafe = (decorators & C2_UNSAFE_ACCESS) != 0;
-    bool requires_atomic_access = (decorators & MO_UNORDERED) == 0;
-
-    bool in_native = (decorators & IN_NATIVE) != 0;
-    assert(!in_native || (unsafe && !access.is_oop()), "not supported yet");
-
-    MemNode::MemOrd mo = access.mem_node_mo();
-
-    Node* store;
-    if (access.is_parse_access()) {
-        C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
-
-        GraphKit* kit = parse_access.kit();
-        if (access.type() == T_DOUBLE) {
-            Node* new_val = kit->dstore_rounding(val.node());
-            val.set_node(new_val);
-        }
-
-        store = kit->store_to_memory(kit->control(), access.addr().node(), val.node(), access.type(),
-                                     access.addr().type(), mo, requires_atomic_access, unaligned, mismatched, unsafe, access.barrier_data());
-    } else {
-        assert(!requires_atomic_access, "not yet supported");
-        assert(access.is_opt_access(), "either parse or opt access");
-        C2OptAccess& opt_access = static_cast<C2OptAccess&>(access);
-        Node* ctl = opt_access.ctl();
-        MergeMemNode* mm = opt_access.mem();
-        PhaseGVN& gvn = opt_access.gvn();
-        const TypePtr* adr_type = access.addr().type();
-        int alias = gvn.C->get_alias_index(adr_type);
-        Node* mem = mm->memory_at(alias);
-
-        StoreNode* st = StoreNode::make(gvn, ctl, mem, access.addr().node(), adr_type, val.node(), access.type(), mo);
-        if (unaligned) {
-            st->set_unaligned_access();
-        }
-        if (mismatched) {
-            st->set_mismatched_access();
-        }
-        st->set_barrier_data(access.barrier_data());
-        store = gvn.transform(st);
-        if (store == st) {
-            mm->set_memory_at(alias, st);
-        }
-    }
-    access.set_raw_access(store);
-
-    return store;
 }
 
 Node* ZBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access, Node* expected_val,
@@ -356,7 +313,15 @@ Node* ZBarrierSetC2::atomic_xchg_at_resolved(C2AtomicParseAccess& access, Node* 
 }
 
 bool ZBarrierSetC2::array_copy_requires_gc_barriers(bool tightly_coupled_alloc, BasicType type,
-                                                    bool is_clone, ArrayCopyPhase phase) const {
+                                                    bool is_clone, bool is_clone_instance,
+                                                    ArrayCopyPhase phase) const {
+  if (phase == ArrayCopyPhase::Parsing) {
+    return false;
+  }
+  if (phase == ArrayCopyPhase::Optimization) {
+    return is_clone_instance;
+  }
+  // else ArrayCopyPhase::Expansion
   return type == T_OBJECT || type == T_ARRAY;
 }
 
@@ -377,11 +342,63 @@ static const TypeFunc* clone_type() {
   return TypeFunc::make(domain, range);
 }
 
+#define XTOP LP64_ONLY(COMMA phase->top())
+
 void ZBarrierSetC2::clone_at_expansion(PhaseMacroExpand* phase, ArrayCopyNode* ac) const {
   Node* const src = ac->in(ArrayCopyNode::Src);
+
   if (ac->is_clone_array()) {
-    // Clone primitive array
-    BarrierSetC2::clone_at_expansion(phase, ac);
+    const TypeAryPtr* ary_ptr = src->get_ptr_type()->isa_aryptr();
+    BasicType bt;
+    if (ary_ptr == NULL) {
+      // ary_ptr can be null iff we are running with StressReflectiveCode
+      // This code will be unreachable
+      assert(StressReflectiveCode, "Guard against surprises");
+      bt = T_LONG;
+    } else {
+      bt = ary_ptr->elem()->array_element_basic_type();
+      if (is_reference_type(bt)) {
+        // Clone object array
+        bt = T_OBJECT;
+      } else {
+        // Clone primitive array
+        bt = T_LONG;
+      }
+    }
+
+    Node* ctrl = ac->in(TypeFunc::Control);
+    Node* mem = ac->in(TypeFunc::Memory);
+    Node* src = ac->in(ArrayCopyNode::Src);
+    Node* src_offset = ac->in(ArrayCopyNode::SrcPos);
+    Node* dest = ac->in(ArrayCopyNode::Dest);
+    Node* dest_offset = ac->in(ArrayCopyNode::DestPos);
+    Node* length = ac->in(ArrayCopyNode::Length);
+
+    if (bt == T_OBJECT) {
+      // BarrierSetC2::clone sets the offsets via BarrierSetC2::arraycopy_payload_base_offset
+      // which 8-byte aligns them to allow for word size copies. Make sure the offsets point
+      // to the first element in the array when cloning object arrays. Otherwise, load
+      // barriers are applied to parts of the header.
+      assert(src_offset == dest_offset, "should be equal");
+      assert((src_offset->get_long() == arrayOopDesc::base_offset_in_bytes(T_OBJECT) && UseCompressedClassPointers) ||
+             (src_offset->get_long() == arrayOopDesc::length_offset_in_bytes() && !UseCompressedClassPointers),
+             "unexpected offset for object array clone");
+      src_offset = phase->longcon(arrayOopDesc::base_offset_in_bytes(T_OBJECT));
+      dest_offset = src_offset;
+    }
+    Node* payload_src = phase->basic_plus_adr(src, src_offset);
+    Node* payload_dst = phase->basic_plus_adr(dest, dest_offset);
+
+    const char* copyfunc_name = "arraycopy";
+    address     copyfunc_addr = phase->basictype2arraycopy(bt, NULL, NULL, true, copyfunc_name, true);
+
+    const TypePtr* raw_adr_type = TypeRawPtr::BOTTOM;
+    const TypeFunc* call_type = OptoRuntime::fast_arraycopy_Type();
+
+    Node* call = phase->make_leaf_call(ctrl, mem, call_type, copyfunc_addr, copyfunc_name, raw_adr_type, payload_src, payload_dst, length XTOP);
+    phase->transform_later(call);
+
+    phase->igvn().replace_node(ac, call);
     return;
   }
 
@@ -412,6 +429,8 @@ void ZBarrierSetC2::clone_at_expansion(PhaseMacroExpand* phase, ArrayCopyNode* a
   phase->transform_later(call);
   phase->igvn().replace_node(ac, call);
 }
+
+#undef XTOP
 
 // == Dominating barrier elision ==
 

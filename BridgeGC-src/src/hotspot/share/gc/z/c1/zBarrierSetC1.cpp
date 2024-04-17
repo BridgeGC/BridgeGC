@@ -88,6 +88,7 @@ void ZLoadBarrierStubC1::print_name(outputStream* out) const {
 }
 #endif // PRODUCT
 
+
 ZKeepBarrierStubC1::ZKeepBarrierStubC1(LIRAccess& access, LIR_Opr ref, address runtime_stub) :
         _decorators(access.decorators()),
         _ref_addr(access.resolved_addr()),
@@ -144,6 +145,7 @@ void ZKeepBarrierStubC1::print_name(outputStream* out) const {
     out->print("ZKeepBarrierStubC1");
 }
 #endif // PRODUCT
+
 
 class LIR_OpZLoadBarrierTest : public LIR_Op {
 private:
@@ -210,7 +212,7 @@ static bool barrier_needed(LIRAccess& access) {
 ZBarrierSetC1::ZBarrierSetC1() :
     _load_barrier_on_oop_field_preloaded_runtime_stub(NULL),
     _load_barrier_on_weak_oop_field_preloaded_runtime_stub(NULL),
-    _keep_barrier_prewrite_runtime_stub(NULL){}
+    _keep_barrier_prewrite_runtime_stub(NULL) {}
 
 address ZBarrierSetC1::load_barrier_on_oop_field_preloaded_runtime_stub(DecoratorSet decorators) const {
   assert((decorators & ON_PHANTOM_OOP_REF) == 0, "Unsupported decorator");
@@ -231,17 +233,12 @@ address ZBarrierSetC1::load_barrier_on_oop_field_preloaded_runtime_stub(Decorato
 
 void ZBarrierSetC1::load_barrier(LIRAccess& access, LIR_Opr result) const {
   // Fast path
+  __ append(new LIR_OpZLoadBarrierTest(result));
+
+  // Slow path
   const address runtime_stub = load_barrier_on_oop_field_preloaded_runtime_stub(access.decorators());
   CodeStub* const stub = new ZLoadBarrierStubC1(access, result, runtime_stub);
-
-
-  //__ append(new LIR_OpZLoadBarrierKeepTest(result));
-  //__ branch(lir_cond_equal, stub->continuation());
-
-  __ append(new LIR_OpZLoadBarrierTest(result));
-  // Slow path
   __ branch(lir_cond_notEqual, stub);
-
   __ branch_destination(stub->continuation());
 }
 
@@ -274,8 +271,8 @@ void ZBarrierSetC1::keep_barrier(LIRAccess& access, LIR_Opr value) const {
     //__ branch(lir_cond_equal, stub->continuation());
 
     // Slow path
-     __ append(new LIR_OpZLoadBarrierKeepTest(value));
-     __ branch(lir_cond_equal, stub);
+    __ append(new LIR_OpZLoadBarrierKeepTest(value));
+    __ branch(lir_cond_equal, stub);
     // __ jump(stub);
 
     __ branch_destination(stub->continuation());
@@ -298,6 +295,7 @@ void ZBarrierSetC1::load_at_resolved(LIRAccess& access, LIR_Opr result) {
     load_barrier(access, result);
   }
 }
+
 
 void ZBarrierSetC1::store_at_resolved(LIRAccess& access, LIR_Opr value){
 

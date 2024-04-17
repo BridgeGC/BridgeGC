@@ -142,7 +142,6 @@ bool ZVirtualMemoryManager::reserve_contiguous(uintptr_t start, size_t size) {
         return false;
     }
 
-
   // Register address views with native memory tracker
   nmt_reserve(marked0, size);
   nmt_reserve(marked1, size);

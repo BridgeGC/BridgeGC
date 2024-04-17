@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,13 +24,12 @@
 #ifndef SHARE_GC_Z_ZBARRIER_INLINE_HPP
 #define SHARE_GC_Z_ZBARRIER_INLINE_HPP
 
-#include "classfile/javaClasses.hpp"
-#include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zBarrier.hpp"
+
+#include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zOop.inline.hpp"
 #include "gc/z/zResurrection.inline.hpp"
-#include "oops/oop.inline.hpp"
-#include "gc/z/zHeap.inline.hpp"
+#include "oops/oop.hpp"
 #include "runtime/atomic.hpp"
 #include "zDriver.hpp"
 #include "zCollectedHeap.hpp"
@@ -105,26 +104,6 @@
 //     Remapped(N)       <- Marked(N)
 //                       <- Finalizable(N)
 
-/*template <bool finalizable>
-class ZMarkDirectClosure : public ClaimMetadataVisitingOopIterateClosure {
-public:
-    ZMarkDirectClosure() :
-            ClaimMetadataVisitingOopIterateClosure(finalizable
-                                                   ? ClassLoaderData::_claim_finalizable
-                                                   : ClassLoaderData::_claim_strong,
-                                                   finalizable
-                                                   ? NULL
-                                                   : ZHeap::heap()->reference_discoverer()) {}
-
-    virtual void do_oop(oop* p) {
-        ZBarrier::mark_barrier_on_oop_field(p, finalizable);
-    }
-
-    virtual void do_oop(narrowOop* p) {
-        ShouldNotReachHere();
-    }
-};*/
-
 template <ZBarrierFastPath fast_path>
 inline void ZBarrier::self_heal(volatile oop* p, uintptr_t addr, uintptr_t heal_addr) {
   if (heal_addr == 0) {
@@ -137,7 +116,6 @@ inline void ZBarrier::self_heal(volatile oop* p, uintptr_t addr, uintptr_t heal_
 
   assert(!fast_path(addr), "Invalid self heal");
   assert(fast_path(heal_addr), "Invalid self heal");
-  //assert(!ZAddress::is_keep(addr),"Not heal Keep");
 
   for (;;) {
     // Heal
@@ -225,8 +203,7 @@ inline void ZBarrier::root_barrier(oop* p, oop o) {
 }
 
 inline bool ZBarrier::is_good_or_null_fast_path(uintptr_t addr) {
-  //return ZAddress::is_good_or_null(addr);
-    return !ZAddress::is_bad(addr);
+  return ZAddress::is_good_or_null(addr);
 }
 
 inline bool ZBarrier::is_not_keep_fast_path(uintptr_t addr) {
@@ -262,60 +239,13 @@ inline oop ZBarrier::load_barrier_on_oop_field(volatile oop* p) {
 }
 
 inline oop ZBarrier::load_barrier_on_oop_field_preloaded(volatile oop* p, oop o) {
-
-    uintptr_t addr = ZOop::to_address(o);
-
-    if (!ZAddress::is_bad(addr)) {
-
-        return o;
-    }
-
-    // Slow path
-    const uintptr_t good_addr = load_barrier_on_oop_slow_path(addr);
-
-    if (p != NULL) {
-        self_heal<is_good_or_null_fast_path>(p, addr, good_addr);
-    }
-
-    return ZOop::from_address(good_addr);
-
-
+  return barrier<is_good_or_null_fast_path, load_barrier_on_oop_slow_path>(p, o);
 }
 
-inline oop ZBarrier::load_barrier_on_slow_oop(volatile oop* p, oop o) {
-    uintptr_t addr = ZOop::to_address(o);
-
-    if (!ZAddress::is_bad(addr)) {
-        return o;
-    }
-
-    // Slow path
-    const uintptr_t good_addr = load_barrier_on_oop_slow_path(addr);
-
-    if (p != NULL) {
-        self_heal<is_good_or_null_fast_path>(p, addr, good_addr);
-    }
-
-    return ZOop::from_address(good_addr);
-
-}
 inline void ZBarrier::load_barrier_on_oop_array(volatile oop* p, size_t length) {
-
   for (volatile const oop* const end = p + length; p < end; p++) {
     load_barrier_on_oop_field(p);
   }
-}
-
-// ON_WEAK barriers should only ever be applied to j.l.r.Reference.referents.
-inline void verify_on_weak(volatile oop* referent_addr) {
-#ifdef ASSERT
-  if (referent_addr != NULL) {
-    uintptr_t base = (uintptr_t)referent_addr - java_lang_ref_Reference::referent_offset();
-    oop obj = cast_to_oop(base);
-    assert(oopDesc::is_oop(obj), "Verification failed for: ref " PTR_FORMAT " obj: " PTR_FORMAT, (uintptr_t)referent_addr, base);
-    assert(java_lang_ref_Reference::is_referent_field(obj, java_lang_ref_Reference::referent_offset()), "Sanity");
-  }
-#endif
 }
 
 inline oop ZBarrier::load_barrier_on_weak_oop_field_preloaded(volatile oop* p, oop o) {
@@ -338,14 +268,11 @@ inline oop ZBarrier::load_barrier_on_phantom_oop_field_preloaded(volatile oop* p
 
 inline void ZBarrier::load_barrier_on_root_oop_field(oop* p) {
   const oop o = *p;
-    const uintptr_t addr = ZOop::to_address(o);
   root_barrier<is_good_or_null_fast_path, load_barrier_on_oop_slow_path>(p, o);
 }
 
 inline void ZBarrier::load_barrier_on_invisible_root_oop_field(oop* p) {
   const oop o = *p;
-    const uintptr_t addr = ZOop::to_address(o);
-
   root_barrier<is_good_or_null_fast_path, load_barrier_on_invisible_root_oop_slow_path>(p, o);
 }
 
@@ -359,7 +286,6 @@ inline oop ZBarrier::weak_load_barrier_on_oop_field(volatile oop* p) {
 }
 
 inline oop ZBarrier::weak_load_barrier_on_oop_field_preloaded(volatile oop* p, oop o) {
-
   return weak_barrier<is_weak_good_or_null_fast_path, weak_load_barrier_on_oop_slow_path>(p, o);
 }
 
@@ -395,6 +321,7 @@ inline oop ZBarrier::weak_load_barrier_on_phantom_oop_field_preloaded(volatile o
   if (ZResurrection::is_blocked()) {
     return barrier<is_good_or_null_fast_path, weak_load_barrier_on_phantom_oop_slow_path>(p, o);
   }
+
   return weak_load_barrier_on_oop_field_preloaded(p, o);
 }
 
@@ -444,7 +371,7 @@ inline void ZBarrier::keep_alive_barrier_on_oop(oop o) {
   assert(ZAddress::is_good(addr), "Invalid address");
 
   if (during_mark()) {
-    mark_barrier_on_oop_slow_path(addr);
+    keep_alive_barrier_on_oop_slow_path(addr);
   }
 }
 
@@ -452,46 +379,39 @@ inline void ZBarrier::keep_alive_barrier_on_oop(oop o) {
 // Mark barrier
 //
 inline void ZBarrier::mark_barrier_on_oop_field(volatile oop* p, bool finalizable, bool keep) {
-  const oop o = Atomic::load(p);
-  oop check = o;
-  const uintptr_t addr = ZOop::to_address(o);
+    const oop o = Atomic::load(p);
+    oop check = o;
+    const uintptr_t addr = ZOop::to_address(o);
 
-  if (finalizable) {
-    check = barrier<is_marked_or_null_fast_path, mark_barrier_on_finalizable_oop_slow_path>(p, o);
-  } else {
-
-    if (ZAddress::is_good(addr)) {
-        if(ZAddress::is_oneof_keep(addr)){
-            if (o->is_objArray())
-                thisarray.push(addr);
-            return;
-        }
-        else
-            mark_barrier_on_oop_slow_path(addr);
-      // Mark through good oop
+    if (finalizable) {
+        check = barrier<is_marked_or_null_fast_path, mark_barrier_on_finalizable_oop_slow_path>(p, o);
     } else {
-      // Mark through bad oop
-      check = barrier<is_good_or_null_fast_path, mark_barrier_on_oop_slow_path>(p, o);
+
+        if (ZAddress::is_good(addr)) {
+            if(ZAddress::is_oneof_keep(addr)){
+                if (o->is_objArray())
+                    thisarray.push(addr);
+                return;
+            }
+            else
+                mark_barrier_on_oop_slow_path(addr);
+            // Mark through good oop
+        } else {
+            // Mark through bad oop
+            check = barrier<is_good_or_null_fast_path, mark_barrier_on_oop_slow_path>(p, o);
+        }
     }
-  }
-  if(keep && check != NULL && !ZAddress::is_oneof_keep(addr)){
-      oop* test = const_cast<oop*>(p);
-      ZCollectedHeap::set_keepObj(test);
-  }
+    if(keep && check != NULL && !ZAddress::is_oneof_keep(addr)){
+        oop* test = const_cast<oop*>(p);
+        ZCollectedHeap::set_keepObj(test);
+    }
 
 }
 
 inline void ZBarrier::mark_barrier_on_oop_array(volatile oop* p, size_t length, bool finalizable, bool keep) {
-    /*if(ZAddress::is_keep(ZOop::to_address(Atomic::load(p))) && ZAddress::is_keep(ZOop::to_address(Atomic::load(p + length))) && !ZDriver::KeepPermit){
-        return;
-    }*/
-    for (volatile const oop* const end = p + length; p < end; p++) {
-        mark_barrier_on_oop_field(p, finalizable, keep);
+  for (volatile const oop* const end = p + length; p < end; p++) {
+    mark_barrier_on_oop_field(p, finalizable, keep);
   }
 }
-
-/*int address_compare(uintptr_t* const lhs, uintptr_t* const rhs){
-    return (lhs > rhs) ? 1 : ((lhs < rhs) ? -1 : 0);
-}*/
 
 #endif // SHARE_GC_Z_ZBARRIER_INLINE_HPP

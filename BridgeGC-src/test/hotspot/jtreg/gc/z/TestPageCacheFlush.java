@@ -69,7 +69,7 @@ public class TestPageCacheFlush {
 
     public static void main(String[] args) throws Exception {
         ProcessTools.executeProcess(ProcessTools.createJavaProcessBuilder(
-                                    "-XX:+UseBridgeGC",
+                                    "-XX:+UseZGC",
                                     "-Xms128M",
                                     "-Xmx128M",
                                     "-Xlog:gc,gc+init,gc+heap=debug",

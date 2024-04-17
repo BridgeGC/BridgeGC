@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -234,7 +234,7 @@ void ZReferenceProcessor::discover(oop reference, ReferenceType type) {
     // the problem of later having to mark those objects if the referent is
     // still final reachable during processing.
     volatile oop* const referent_addr = reference_referent_addr(reference);
-    ZBarrier::mark_barrier_on_oop_field(referent_addr, true /* finalizable */, false);
+    ZBarrier::mark_barrier_on_oop_field(referent_addr, true /* finalizable */,false);
   }
 
   // Add reference to discovered list
@@ -425,7 +425,7 @@ void ZReferenceProcessor::process_references() {
 
   // Process discovered lists
   ZReferenceProcessorTask task(this);
-  _workers->run_concurrent(&task);
+  _workers->run(&task);
 
   // Update SoftReference clock
   soft_reference_update_clock();

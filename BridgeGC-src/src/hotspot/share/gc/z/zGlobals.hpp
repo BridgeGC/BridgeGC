@@ -29,7 +29,7 @@
 #include CPU_HEADER(gc/z/zGlobals)
 
 // Collector name
-const char* const ZName                         = "The Z Garbage Collector";
+const char* const ZName                         = "The Bridge Garbage Collector";
 
 // Global phase state
 extern uint32_t   ZGlobalPhase;

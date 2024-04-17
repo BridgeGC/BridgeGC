@@ -28,7 +28,7 @@
  * @key headful printer
  * @requires (os.family == "windows")
  * @requires vm.gc.Z
- * @run main/manual/othervm -XX:+UseBridgeGC -Dsun.java2d.d3d=false AlphaPrintTest
+ * @run main/manual/othervm -XX:+UseZGC -Dsun.java2d.d3d=false AlphaPrintTest
  */
 
 import java.awt.Color;

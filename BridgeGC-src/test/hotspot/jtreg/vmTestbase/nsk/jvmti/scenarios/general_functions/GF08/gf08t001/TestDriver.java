@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,7 +53,7 @@
  * @library /vmTestbase
  *          /test/lib
  * @build sun.hotspot.WhiteBox
- * @run driver ClassFileInstaller sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run main/othervm/native
  *      -Xbootclasspath/a:.
  *      -XX:+UnlockDiagnosticVMOptions
@@ -70,17 +70,17 @@ public class TestDriver {
         WhiteBox wb = WhiteBox.getWhiteBox();
         Boolean isExplicitGCInvokesConcurrentOn = wb.getBooleanVMFlag("ExplicitGCInvokesConcurrent");
         boolean isUseG1GCon = GC.G1.isSelected();
-        boolean isUseBridgeGCon = GC.Z.isSelected();
+        boolean isUseZGCon = GC.Z.isSelected();
         boolean isShenandoahGCon = GC.Shenandoah.isSelected();
         boolean isUseEpsilonGCon = GC.Epsilon.isSelected();
 
         if (Compiler.isGraalEnabled() &&
-            (isUseBridgeGCon || isUseEpsilonGCon || isShenandoahGCon)) {
+            (isUseZGCon || isUseEpsilonGCon || isShenandoahGCon)) {
             return; // Graal does not support these GCs
         }
 
         String keyPhrase;
-        if ((isExplicitGCInvokesConcurrentOn && isUseG1GCon) || isUseBridgeGCon || isShenandoahGCon) {
+        if ((isExplicitGCInvokesConcurrentOn && isUseG1GCon) || isUseZGCon || isShenandoahGCon) {
             keyPhrase = "GC";
         } else {
             keyPhrase = "Pause Full";

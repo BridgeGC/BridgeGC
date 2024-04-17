@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 #include "precompiled.hpp"
 #include "classfile/javaClasses.hpp"
 #include "classfile/symbolTable.hpp"
-#include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "gc/shared/collectedHeap.inline.hpp"
 #include "memory/oopFactory.hpp"
@@ -42,35 +41,35 @@
 #include "utilities/utf8.hpp"
 
 typeArrayOop oopFactory::new_boolArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::boolArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::boolArrayKlassObj())->allocate(false, length, THREAD);
 }
 
 typeArrayOop oopFactory::new_charArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::charArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::charArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_floatArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::floatArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::floatArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_doubleArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::doubleArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::doubleArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_byteArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::byteArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::byteArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_shortArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::shortArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::shortArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_intArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::intArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::intArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 typeArrayOop oopFactory::new_longArray(int length, TRAPS) {
-  return TypeArrayKlass::cast(Universe::longArrayKlassObj())->allocate(0, length, THREAD);
+  return TypeArrayKlass::cast(Universe::longArrayKlassObj())->allocate(false,length, THREAD);
 }
 
 // create java.lang.Object[]
@@ -89,10 +88,14 @@ typeArrayOop oopFactory::new_charArray(const char* utf8_str, TRAPS) {
 }
 
 typeArrayOop oopFactory::new_typeArray(bool annotated, BasicType type, int length, TRAPS) {
-  Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
-  TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
-  typeArrayOop result = type_asArrayKlass->allocate(annotated, length, THREAD);
-  return result;
+    Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
+    TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
+    typeArrayOop result = type_asArrayKlass->allocate(annotated, length, THREAD);
+    return result;
+}
+
+typeArrayOop oopFactory::new_typeArray(BasicType type, int length, TRAPS) {
+    return new_typeArray(false, type, length, THREAD);
 }
 
 // Create a Java array that points to Symbol.
@@ -103,14 +106,14 @@ typeArrayOop oopFactory::new_symbolArray(int length, TRAPS) {
   BasicType type = LP64_ONLY(T_LONG) NOT_LP64(T_INT);
   Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
   TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
-  typeArrayOop result = type_asArrayKlass->allocate(0,length, THREAD);
+  typeArrayOop result = type_asArrayKlass->allocate(false, length, THREAD);
   return result;
 }
 
 typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, TRAPS) {
   Klass* type_asKlassOop = Universe::typeArrayKlassObj(type);
   TypeArrayKlass* type_asArrayKlass = TypeArrayKlass::cast(type_asKlassOop);
-  typeArrayOop result = type_asArrayKlass->allocate_common(0, length, false, THREAD);
+  typeArrayOop result = type_asArrayKlass->allocate_common(false, length, false, THREAD);
   return result;
 }
 
@@ -121,13 +124,12 @@ typeArrayOop oopFactory::new_typeArray_nozero(BasicType type, int length, bool a
     return result;
 }
 
-
 objArrayOop oopFactory::new_objArray(Klass* klass, int length, TRAPS) {
   assert(klass->is_klass(), "must be instance class");
   if (klass->is_array_klass()) {
     return ArrayKlass::cast(klass)->allocate_arrayArray(1, length, THREAD);
   } else {
-    return InstanceKlass::cast(klass)->allocate_objArray(1, length,0, THREAD);
+    return InstanceKlass::cast(klass)->allocate_objArray(1, length, false, THREAD);
   }
 }
 
@@ -139,6 +141,7 @@ objArrayOop oopFactory::new_objArray(Klass* klass, int length, bool annotated, T
         return InstanceKlass::cast(klass)->allocate_objArray(1, length, annotated, THREAD);
     }
 }
+
 objArrayHandle oopFactory::new_objArray_handle(Klass* klass, int length, TRAPS) {
   objArrayOop obj = new_objArray(klass, length, CHECK_(objArrayHandle()));
   return objArrayHandle(THREAD, obj);

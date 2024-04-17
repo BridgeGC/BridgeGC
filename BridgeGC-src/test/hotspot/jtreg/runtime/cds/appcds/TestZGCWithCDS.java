@@ -46,7 +46,7 @@ public class TestZGCWithCDS {
          OutputAnalyzer out = TestCommon
                                   .dump(helloJar,
                                         new String[] {"Hello"},
-                                        "-XX:+UseBridgeGC",
+                                        "-XX:+UseZGC",
                                         "-Xlog:cds");
          out.shouldContain("Dumping shared data to file:");
          out.shouldHaveExitValue(0);
@@ -54,7 +54,7 @@ public class TestZGCWithCDS {
          System.out.println("1. Run with same args of dump");
          out = TestCommon
                    .exec(helloJar,
-                         "-XX:+UseBridgeGC",
+                         "-XX:+UseZGC",
                          "-Xlog:cds",
                          "Hello");
          out.shouldContain(HELLO);
@@ -63,7 +63,7 @@ public class TestZGCWithCDS {
          System.out.println("2. Run with +UseCompressedOops +UseCompressedClassPointers");
          out = TestCommon
                    .exec(helloJar,
-                         "-XX:-UseBridgeGC",
+                         "-XX:-UseZGC",
                          "-XX:+UseCompressedOops",           // in case turned off by vmoptions
                          "-XX:+UseCompressedClassPointers",  // by jtreg
                          "-Xlog:cds",
@@ -133,7 +133,7 @@ public class TestZGCWithCDS {
          System.out.println("8. Run with ZGC");
          out = TestCommon
                    .exec(helloJar,
-                         "-XX:+UseBridgeGC",
+                         "-XX:+UseZGC",
                          "-Xlog:cds",
                          "Hello");
          out.shouldContain(HELLO);

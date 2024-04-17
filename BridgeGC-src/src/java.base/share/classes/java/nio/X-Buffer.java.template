@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -268,6 +268,8 @@ public abstract class $Type$Buffer
     extends Buffer
     implements Comparable<$Type$Buffer>{#if[char]?, Appendable, CharSequence, Readable}
 {
+    // Cached array base offset
+    private static final long ARRAY_BASE_OFFSET = UNSAFE.arrayBaseOffset($type$[].class);
 
     // These fields are declared here rather than in Heap-X-Buffer in order to
     // reduce the number of virtual method invocations needed to access these
@@ -360,7 +362,7 @@ public abstract class $Type$Buffer
             throw createCapacityException(capacity);
         return new Heap$Type$Buffer(capacity, capacity, null);
     }
-	
+
 	 /**
      * Allocates a new keep $type$ buffer.
      *
@@ -660,35 +662,35 @@ public abstract class $Type$Buffer
     @Override
     public abstract $Type$Buffer duplicate();
 
-
     /**
-         * Creates a new $type$ buffer that shares this keep buffer's content.
-         *
-         * <p> The content of the new buffer will be that of this buffer.  Changes
-         * to this buffer's content will be visible in the new buffer, and vice
-         * versa; the two buffers' position, limit, and mark values will be
-         * independent.
-         *
-         * <p> The new buffer's capacity, limit, position,
-    #if[byte]
-         * and mark values will be identical to those of this buffer, and its byte
-         * order will be {@link ByteOrder#BIG_ENDIAN BIG_ENDIAN}.
-    #else[byte]
-         * mark values, and byte order will be identical to those of this buffer.
-    #end[byte]
-         * The new buffer will be direct if, and only if, this buffer is direct, and
-         * it will be read-only if, and only if, this buffer is read-only.  </p>
-         *
-         * @return  The new $type$ buffer
-         */
-        public $Type$Buffer duplicateKeep() {
-                return new @DataObj Heap$Type$Buffer(hb,
-                                                this.markValue(),
-                                                this.position(),
-                                                this.limit(),
-                                                this.capacity(),
-                                                offset, segment);
-        }
+             * Creates a new $type$ buffer that shares this keep buffer's content.
+             *
+             * <p> The content of the new buffer will be that of this buffer.  Changes
+             * to this buffer's content will be visible in the new buffer, and vice
+             * versa; the two buffers' position, limit, and mark values will be
+             * independent.
+             *
+             * <p> The new buffer's capacity, limit, position,
+        #if[byte]
+             * and mark values will be identical to those of this buffer, and its byte
+             * order will be {@link ByteOrder#BIG_ENDIAN BIG_ENDIAN}.
+        #else[byte]
+             * mark values, and byte order will be identical to those of this buffer.
+        #end[byte]
+             * The new buffer will be direct if, and only if, this buffer is direct, and
+             * it will be read-only if, and only if, this buffer is read-only.  </p>
+             *
+             * @return  The new $type$ buffer
+             */
+            public $Type$Buffer duplicateKeep() {
+                    return new @DataObj Heap$Type$Buffer(hb,
+                                                    this.markValue(),
+                                                    this.position(),
+                                                    this.limit(),
+                                                    this.capacity(),
+                                                    offset, segment);
+            }
+
     /**
      * Creates a new, read-only $type$ buffer that shares this buffer's
      * content.
@@ -853,11 +855,13 @@ public abstract class $Type$Buffer
      */
     public $Type$Buffer get($type$[] dst, int offset, int length) {
         Objects.checkFromIndexSize(offset, length, dst.length);
-        if (length > remaining())
+        int pos = position();
+        if (length > limit() - pos)
             throw new BufferUnderflowException();
-        int end = offset + length;
-        for (int i = offset; i < end; i++)
-            dst[i] = get();
+
+        getArray(pos, dst, offset, length);
+
+        position(pos + length);
         return this;
     }
 
@@ -931,9 +935,9 @@ public abstract class $Type$Buffer
     public $Type$Buffer get(int index, $type$[] dst, int offset, int length) {
         Objects.checkFromIndexSize(index, length, limit());
         Objects.checkFromIndexSize(offset, length, dst.length);
-        int end = offset + length;
-        for (int i = offset, j = index; i < end; i++, j++)
-            dst[i] = get(j);
+
+        getArray(index, dst, offset, length);
+
         return this;
     }
 
@@ -966,6 +970,40 @@ public abstract class $Type$Buffer
      */
     public $Type$Buffer get(int index, $type$[] dst) {
         return get(index, dst, 0, dst.length);
+    }
+
+    private $Type$Buffer getArray(int index, $type$[] dst, int offset, int length) {
+        if (
+#if[char]
+            isAddressable() &&
+#end[char]
+            ((long)length << $LG_BYTES_PER_VALUE$) > Bits.JNI_COPY_TO_ARRAY_THRESHOLD) {
+            long bufAddr = address + ((long)index << $LG_BYTES_PER_VALUE$);
+            long dstOffset =
+                ARRAY_BASE_OFFSET + ((long)offset << $LG_BYTES_PER_VALUE$);
+            long len = (long)length << $LG_BYTES_PER_VALUE$;
+
+            try {
+#if[!byte]
+                if (order() != ByteOrder.nativeOrder())
+                    SCOPED_MEMORY_ACCESS.copySwapMemory(
+                            scope(), null, base(), bufAddr,
+                            dst, dstOffset, len, $Fulltype$.BYTES);
+                else
+#end[!byte]
+                    SCOPED_MEMORY_ACCESS.copyMemory(
+                            scope(), null, base(), bufAddr,
+                            dst, dstOffset, len);
+            } finally {
+                Reference.reachabilityFence(this);
+            }
+        } else {
+            int end = offset + length;
+            for (int i = offset, j = index; i < end; i++, j++) {
+                dst[i] = get(j);
+            }
+        }
+        return this;
     }
 
     // -- Bulk put operations --
@@ -1100,8 +1138,8 @@ public abstract class $Type$Buffer
     }
 
     void putBuffer(int pos, $Type$Buffer src, int srcPos, int n) {
+#if[rw]
         Object srcBase = src.base();
-
 #if[char]
         if (src.isAddressable()) {
 #else[char]
@@ -1115,29 +1153,21 @@ public abstract class $Type$Buffer
             long addr = address + ((long)pos << $LG_BYTES_PER_VALUE$);
             long len = (long)n << $LG_BYTES_PER_VALUE$;
 
+            try {
 #if[!byte]
-            if (this.order() == src.order()) {
-#end[!byte]
-                try {
-                    SCOPED_MEMORY_ACCESS.copyMemory(
-                            scope(), src.scope(), srcBase,
-                            srcAddr, base, addr, len);
-                } finally {
-                    Reference.reachabilityFence(src);
-                    Reference.reachabilityFence(this);
-                }
-#if[!byte]
-            } else {
-                try {
+                if (this.order() != src.order())
                     SCOPED_MEMORY_ACCESS.copySwapMemory(
-                            scope(), src.scope(), srcBase,
-                            srcAddr, base, addr, len, (long)1 << $LG_BYTES_PER_VALUE$);
-                } finally {
-                    Reference.reachabilityFence(src);
-                    Reference.reachabilityFence(this);
-                }
-            }
+                            src.scope(), scope(), srcBase, srcAddr,
+                            base, addr, len, $Fulltype$.BYTES);
+                else
 #end[!byte]
+                    SCOPED_MEMORY_ACCESS.copyMemory(
+                            src.scope(), scope(), srcBase, srcAddr,
+                            base, addr, len);
+            } finally {
+                Reference.reachabilityFence(src);
+                Reference.reachabilityFence(this);
+            }
 #if[char]
         } else { // src.isAddressable() == false
             assert StringCharBuffer.class.isInstance(src);
@@ -1146,6 +1176,9 @@ public abstract class $Type$Buffer
                 put(i, src.get(j));
         }
 #end[char]
+#else[rw]
+        throw new ReadOnlyBufferException();
+#end[rw]
     }
 
     /**
@@ -1200,12 +1233,16 @@ public abstract class $Type$Buffer
      *          If this buffer is read-only
      */
     public $Type$Buffer put($type$[] src, int offset, int length) {
+        if (isReadOnly())
+            throw new ReadOnlyBufferException();
         Objects.checkFromIndexSize(offset, length, src.length);
-        if (length > remaining())
+        int pos = position();
+        if (length > limit() - pos)
             throw new BufferOverflowException();
-        int end = offset + length;
-        for (int i = offset; i < end; i++)
-            this.put(src[i]);
+
+        putArray(pos, src, offset, length);
+
+        position(pos + length);
         return this;
     }
 
@@ -1285,9 +1322,9 @@ public abstract class $Type$Buffer
             throw new ReadOnlyBufferException();
         Objects.checkFromIndexSize(index, length, limit());
         Objects.checkFromIndexSize(offset, length, src.length);
-        int end = offset + length;
-        for (int i = offset, j = index; i < end; i++, j++)
-            this.put(j, src[i]);
+
+        putArray(index, src, offset, length);
+
         return this;
     }
 
@@ -1322,6 +1359,43 @@ public abstract class $Type$Buffer
      */
     public $Type$Buffer put(int index, $type$[] src) {
         return put(index, src, 0, src.length);
+    }
+
+    private $Type$Buffer putArray(int index, $type$[] src, int offset, int length) {
+#if[rw]
+        if (
+#if[char]
+            isAddressable() &&
+#end[char]
+            ((long)length << $LG_BYTES_PER_VALUE$) > Bits.JNI_COPY_FROM_ARRAY_THRESHOLD) {
+            long bufAddr = address + ((long)index << $LG_BYTES_PER_VALUE$);
+            long srcOffset =
+                ARRAY_BASE_OFFSET + ((long)offset << $LG_BYTES_PER_VALUE$);
+            long len = (long)length << $LG_BYTES_PER_VALUE$;
+
+            try {
+#if[!byte]
+                if (order() != ByteOrder.nativeOrder())
+                    SCOPED_MEMORY_ACCESS.copySwapMemory(
+                            null, scope(), src, srcOffset,
+                            base(), bufAddr, len, $Fulltype$.BYTES);
+                else
+#end[!byte]
+                    SCOPED_MEMORY_ACCESS.copyMemory(
+                            null, scope(), src, srcOffset,
+                            base(), bufAddr, len);
+            } finally {
+                Reference.reachabilityFence(this);
+            }
+        } else {
+            int end = offset + length;
+            for (int i = offset, j = index; i < end; i++, j++)
+                this.put(j, src[i]);
+        }
+        return this;
+#else[rw]
+        throw new ReadOnlyBufferException();
+#end[rw]
     }
 
 #if[char]
@@ -1909,9 +1983,10 @@ public abstract class $Type$Buffer
      * content of this buffer is mutable then modifications to one buffer will
      * cause the other to be modified.  The new buffer's capacity will be that
      * of this buffer, its position will be
-     * {@code position()}&nbsp;+&nbsp;{@code start}, and its limit will be
-     * {@code position()}&nbsp;+&nbsp;{@code end}.  The new buffer will be
-     * direct if, and only if, this buffer is direct, and it will be read-only
+     * {@code position()}&nbsp;+&nbsp;{@code start}, its limit will be
+     * {@code position()}&nbsp;+&nbsp;{@code end}, and its byte order
+     * will be identical to that of this buffer. The new buffer will be direct
+     * if, and only if, this buffer is direct, and it will be read-only
      * if, and only if, this buffer is read-only.  </p>
      *
      * @param  start

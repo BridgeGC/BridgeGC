@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,7 @@
  */
 
 #include "precompiled.hpp"
+#include "gc/shared/tlab_globals.hpp"
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zStackWatermark.hpp"
 #include "gc/z/zThreadLocalAllocBuffer.hpp"
@@ -29,7 +30,6 @@
 #include "runtime/globals.hpp"
 #include "runtime/stackWatermarkSet.inline.hpp"
 #include "runtime/thread.hpp"
-#include "zDriver.hpp"
 
 ZPerWorker<ThreadLocalAllocStats>* ZThreadLocalAllocBuffer::_stats = NULL;
 
@@ -67,20 +67,13 @@ static void fixup_address(HeapWord** p) {
   *p = (HeapWord*)ZAddress::good_or_null((uintptr_t)*p);
 }
 
-static void fixup_keep_address(HeapWord** p) {
-    *p = (HeapWord*)ZAddress::keep_or_null((uintptr_t)*p);
-}
-
 void ZThreadLocalAllocBuffer::retire(JavaThread* thread, ThreadLocalAllocStats* stats) {
   if (UseTLAB) {
     stats->reset();
     thread->tlab().addresses_do(fixup_address);
-    thread->tklab().addresses_do(fixup_keep_address);
     thread->tlab().retire(stats);
-    thread->tklab().retire(stats);
     if (ResizeTLAB) {
       thread->tlab().resize();
-      thread->tklab().resize();
     }
   }
 }
@@ -88,7 +81,6 @@ void ZThreadLocalAllocBuffer::retire(JavaThread* thread, ThreadLocalAllocStats* 
 void ZThreadLocalAllocBuffer::remap(JavaThread* thread) {
   if (UseTLAB) {
     thread->tlab().addresses_do(fixup_address);
-    thread->tklab().addresses_do(fixup_keep_address);
   }
 }
 

@@ -60,9 +60,9 @@ public:
     data(thread)->_address_bad_mask = mask;
   }
 
-  static void set_address_keep_mask(Thread* thread, uintptr_t mask) {
-    data(thread)->_address_keep_mask = mask;
-  }
+    static void set_address_keep_mask(Thread* thread, uintptr_t mask) {
+        data(thread)->_address_keep_mask = mask;
+    }
 
   static ZMarkThreadLocalStacks* stacks(Thread* thread) {
     return &data(thread)->_stacks;
@@ -89,9 +89,9 @@ public:
     return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _address_bad_mask);
   }
 
-  static ByteSize address_keep_mask_offset() {
-      return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _address_keep_mask);
-  }
+    static ByteSize address_keep_mask_offset() {
+        return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _address_keep_mask);
+    }
 
   static ByteSize nmethod_disarmed_offset() {
     return address_bad_mask_offset() + in_ByteSize(ZAddressBadMaskHighOrderBitsOffset);

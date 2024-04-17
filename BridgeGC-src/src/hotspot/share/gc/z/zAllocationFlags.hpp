@@ -70,15 +70,15 @@ public:
   }
 
   void set_Keep_alloc() {
-      _flags |= field_Keep_alloc::encode(true);
-  }
+        _flags |= field_Keep_alloc::encode(true);
+    }
     void unset_Keep_alloc() {
         _flags |= field_Keep_alloc::encode(false);
     }
 
-  bool Keep_alloc() const {
-      return field_Keep_alloc::decode(_flags);
-  }
+    bool Keep_alloc() const {
+        return field_Keep_alloc::decode(_flags);
+    }
 
   bool non_blocking() const {
     return field_non_blocking::decode(_flags);

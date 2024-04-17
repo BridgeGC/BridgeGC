@@ -43,7 +43,7 @@ public class TestDisableDefaultGC {
         ProcessBuilder pb = GCArguments.createJavaProcessBuilder("-XX:-UseSerialGC",
                                                                  "-XX:-UseParallelGC",
                                                                  "-XX:-UseG1GC",
-                                                                 "-XX:-UseBridgeGC",
+                                                                 "-XX:-UseZGC",
                                                                  "-XX:+UnlockExperimentalVMOptions",
                                                                  "-XX:-UseShenandoahGC",
                                                                  "-version");

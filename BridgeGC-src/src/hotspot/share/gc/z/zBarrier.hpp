@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,9 @@ typedef uintptr_t (*ZBarrierSlowPath)(uintptr_t);
 
 class ZBarrier : public AllStatic {
 private:
+  static const bool GCThread    = true;
+  static const bool AnyThread   = false;
+
   static const bool Follow      = true;
   static const bool DontFollow  = false;
 
@@ -57,7 +60,7 @@ private:
   static bool during_mark();
   static bool during_relocate();
   template <bool finalizable> static bool should_mark_through(uintptr_t addr);
-  template <bool follow, bool finalizable, bool publish> static uintptr_t mark(uintptr_t addr);
+  template <bool gc_thread, bool follow, bool finalizable, bool publish> static uintptr_t mark(uintptr_t addr);
   static uintptr_t remap(uintptr_t addr);
   static uintptr_t relocate(uintptr_t addr);
   static uintptr_t relocate_or_mark(uintptr_t addr);
@@ -71,24 +74,21 @@ private:
   static uintptr_t weak_load_barrier_on_weak_oop_slow_path(uintptr_t addr);
   static uintptr_t weak_load_barrier_on_phantom_oop_slow_path(uintptr_t addr);
 
+  static uintptr_t keep_alive_barrier_on_oop_slow_path(uintptr_t addr);
   static uintptr_t keep_alive_barrier_on_weak_oop_slow_path(uintptr_t addr);
   static uintptr_t keep_alive_barrier_on_phantom_oop_slow_path(uintptr_t addr);
 
   static uintptr_t mark_barrier_on_oop_slow_path(uintptr_t addr);
   static uintptr_t mark_barrier_on_finalizable_oop_slow_path(uintptr_t addr);
 
+  static void verify_on_weak(volatile oop* referent_addr) NOT_DEBUG_RETURN;
+
 public:
 
-    volatile static size_t skipbarrier;
-    volatile static size_t non_skipbarrier;
-    volatile static size_t skipweakbarrier;
-    volatile static size_t non_skipweakbarrier;
     ZArray<size_t> static thisarray;
     ZArray<size_t> static lastarray;
   // Load barrier
-  //static void set_direct(oop* p, bool finalizable);
   static  oop load_barrier_on_oop(oop o);
-  static  oop load_barrier_on_slow_oop(volatile oop* p, oop o);
   static  oop load_barrier_on_oop_field(volatile oop* p);
   static  oop load_barrier_on_oop_field_preloaded(volatile oop* p, oop o);
   static void load_barrier_on_oop_array(volatile oop* p, size_t length);
@@ -113,10 +113,10 @@ public:
   static bool is_alive_barrier_on_phantom_oop(oop o);
 
   // Keep alive barrier
+  static void keep_alive_barrier_on_oop(oop o);
   static void keep_alive_barrier_on_weak_oop_field(volatile oop* p);
   static void keep_alive_barrier_on_phantom_oop_field(volatile oop* p);
   static void keep_alive_barrier_on_phantom_root_oop_field(oop* p);
-  static void keep_alive_barrier_on_oop(oop o);
 
   // Mark barrier
   static void mark_barrier_on_oop_field(volatile oop* p, bool finalizable, bool keep);
@@ -132,12 +132,6 @@ public:
   static oop  weak_load_barrier_on_oop_field_preloaded(volatile narrowOop* p, oop o);
   static oop  weak_load_barrier_on_weak_oop_field_preloaded(volatile narrowOop* p, oop o);
   static oop  weak_load_barrier_on_phantom_oop_field_preloaded(volatile narrowOop* p, oop o);
-  // static int address_compare(uintptr_t* const lhs, uintptr_t* const rhs);
-
-//    static size_t skipbarrier;
-//    static size_t non_skipbarrier;
-//    static size_t skipweakbarrier;
-//    static size_t non_skipweakbarrier;
 };
 
 class ZLoadBarrierOopClosure : public BasicOopIterateClosure {

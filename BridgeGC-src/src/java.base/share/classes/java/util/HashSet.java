@@ -97,7 +97,7 @@ public class HashSet<E>
     private transient HashMap<E,Object> map;
 
     // Dummy value to associate with an Object in the backing Map
-    private final static Object PRESENT = new @DataObj Object();
+    private static final Object PRESENT = new Object();
 
     /**
      * Constructs a new, empty set; the backing {@code HashMap} instance has
@@ -134,35 +134,6 @@ public class HashSet<E>
         map = new HashMap<>(initialCapacity, loadFactor);
     }
 
-
-	/**
-     * Constructs a new, empty set; the backing {@code HashMap} instance has
-     * the specified initial capacity and the specified load factor.
-     *
-     * @param      initialCapacity   the initial capacity of the hash map
-     * @param      testarray        new teste array
-     * @throws     IllegalArgumentException if the initial capacity is less
-     *             than zero, or if the load factor is nonpositive
-     */
-    public HashSet(int initialCapacity, HashNode<E,Object>[] testarray) {
-        map = new HashMap<>(initialCapacity, testarray);
-    }
-
-
-	/**
-     * Constructs a new, empty set; the backing {@code HashMap} instance has
-     * the specified initial capacity and the specified load factor.
-     *
-     * @param      initialCapacity   the initial capacity of the hash map
-     * @param      testarray        new teste array
-     * @throws     IllegalArgumentException if the initial capacity is less
-     *             than zero, or if the load factor is nonpositive
-     */
-    public HashSet(HashMap<E,Object> testarray) {
-        map = testarray;
-        // PRESENT = new @DataObj Object();
-    }
-	
     /**
      * Constructs a new, empty set; the backing {@code HashMap} instance has
      * the specified initial capacity and default load factor (0.75).
@@ -173,17 +144,35 @@ public class HashSet<E>
      */
     public HashSet(int initialCapacity) {
         map = new HashMap<>(initialCapacity);
-        // change();
     }
 
-    /**
-     * Constructs a new, empty set; the backing {@code HashMap} instance has
-     * the specified initial capacity and default load factor (0.75).
-     *
-     */
-//     public void change(){
-//         PRESENT = new @DataObj Object();
-//     }
+    	/**
+         * Constructs a new, empty set; the backing {@code HashMap} instance has
+         * the specified initial capacity and the specified load factor.
+         *
+         * @param      initialCapacity   the initial capacity of the hash map
+         * @param      testarray        new teste array
+         * @throws     IllegalArgumentException if the initial capacity is less
+         *             than zero, or if the load factor is nonpositive
+         */
+        public HashSet(int initialCapacity, HashNode<E,Object>[] testarray) {
+            map = new HashMap<>(initialCapacity, testarray);
+        }
+
+
+    	/**
+         * Constructs a new, empty set; the backing {@code HashMap} instance has
+         * the specified initial capacity and the specified load factor.
+         *
+         * @param      initialCapacity   the initial capacity of the hash map
+         * @param      testarray        new teste array
+         * @throws     IllegalArgumentException if the initial capacity is less
+         *             than zero, or if the load factor is nonpositive
+         */
+        public HashSet(HashMap<E,Object> testarray) {
+            map = testarray;
+            // PRESENT = new @DataObj Object();
+        }
 
     /**
      * Constructs a new, empty linked hash set.  (This package private
@@ -259,35 +248,35 @@ public class HashSet<E>
     public boolean add(E e) {
         return map.put(e, PRESENT)==null;
     }
-	
-	/**
-     * Adds the specified element to this set if it is not already present.
-     * More formally, adds the specified element {@code e} to this set if
-     * this set contains no element {@code e2} such that
-     * {@code Objects.equals(e, e2)}.
-     * If this set already contains the element, the call leaves the set
-     * unchanged and returns {@code false}.
-     *
-     * @param e element to be added to this set
-     */
-    public void addtest(E e) {
-        map.puttest(e, PRESENT);
-    }
-	
-	/**
-     * Adds the specified element to this set if it is not already present.
-     * More formally, adds the specified element {@code e} to this set if
-     * this set contains no element {@code e2} such that
-     * {@code Objects.equals(e, e2)}.
-     * If this set already contains the element, the call leaves the set
-     * unchanged and returns {@code false}.
-     *
-     * @param keep is for keep
-	 * @param hash is for hash
-     */
-    public void addkeep(HashNode<E, Object> keep, int hash) {
-        map.putkeep(keep, hash);
-    }
+
+    	/**
+         * Adds the specified element to this set if it is not already present.
+         * More formally, adds the specified element {@code e} to this set if
+         * this set contains no element {@code e2} such that
+         * {@code Objects.equals(e, e2)}.
+         * If this set already contains the element, the call leaves the set
+         * unchanged and returns {@code false}.
+         *
+         * @param e element to be added to this set
+         */
+        public void addtest(E e) {
+            map.puttest(e, PRESENT);
+        }
+
+    	/**
+         * Adds the specified element to this set if it is not already present.
+         * More formally, adds the specified element {@code e} to this set if
+         * this set contains no element {@code e2} such that
+         * {@code Objects.equals(e, e2)}.
+         * If this set already contains the element, the call leaves the set
+         * unchanged and returns {@code false}.
+         *
+         * @param keep is for keep
+    	 * @param hash is for hash
+         */
+        public void addkeep(HashNode<E, Object> keep, int hash) {
+            map.putkeep(keep, hash);
+        }
 
     /**
      * Removes the specified element from this set if it is present.

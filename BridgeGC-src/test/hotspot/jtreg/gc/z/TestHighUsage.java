@@ -85,7 +85,7 @@ public class TestHighUsage {
     }
 
     public static void main(String[] args) throws Exception {
-        ProcessTools.executeTestJvm("-XX:+UseBridgeGC",
+        ProcessTools.executeTestJvm("-XX:+UseZGC",
                                     "-XX:-ZProactive",
                                     "-Xms128M",
                                     "-Xmx128M",

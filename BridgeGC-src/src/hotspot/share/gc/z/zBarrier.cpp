@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,17 +22,16 @@
  */
 
 #include "precompiled.hpp"
+#include "classfile/javaClasses.hpp"
 #include "gc/z/zBarrier.inline.hpp"
+#include "gc/z/zHeap.inline.hpp"
 #include "gc/z/zOop.inline.hpp"
+#include "gc/z/zThread.inline.hpp"
 #include "memory/iterator.inline.hpp"
+#include "oops/oop.inline.hpp"
 #include "runtime/safepoint.hpp"
 #include "utilities/debug.hpp"
-#include "zDriver.hpp"
 
-volatile size_t  ZBarrier::skipbarrier = 0;
-volatile size_t  ZBarrier::non_skipbarrier = 0;
-volatile size_t  ZBarrier::skipweakbarrier = 0;
-volatile size_t  ZBarrier::non_skipweakbarrier = 0;
 ZArray<size_t> ZBarrier::thisarray = ZArray<size_t>(512);
 ZArray<size_t> ZBarrier::lastarray = ZArray<size_t>(512);
 
@@ -42,8 +41,8 @@ bool ZBarrier::should_mark_through(uintptr_t addr) {
   // has completed, in which case we just want to convert this into a
   // good oop and not push it on the mark stack.
   if (!during_mark()) {
-    //assert(ZAddress::is_marked(addr), "Should be marked");
-    //assert(ZAddress::is_finalizable(addr), "Should be finalizable");
+    assert(ZAddress::is_marked(addr), "Should be marked");
+    assert(ZAddress::is_finalizable(addr), "Should be finalizable");
     return false;
   }
 
@@ -69,27 +68,26 @@ bool ZBarrier::should_mark_through(uintptr_t addr) {
   return true;
 }
 
-
-template <bool follow, bool finalizable, bool publish>
+template <bool gc_thread, bool follow, bool finalizable, bool publish>
 uintptr_t ZBarrier::mark(uintptr_t addr) {
   uintptr_t good_addr;
-  //assert(!ZAddress::is_keep(addr),"Not mark Keep");
-  if (ZAddress::is_pure_marked(addr)) {
-    // Already marked, but try to mark though anyway
-    good_addr = ZAddress::good(addr);
-  } else if (ZAddress::is_remapped(addr)) {
-    // Already remapped, but also needs to be marked
-    good_addr = ZAddress::good(addr);
-  } else if (ZAddress::is_oneof_keep(addr)) {
-    good_addr = ZAddress::currentkeep(addr);
-  }else{
-      // Needs to be both remapped and marked
-      good_addr = remap(addr);
-  }
+
+    if (ZAddress::is_pure_marked(addr)) {
+        // Already marked, but try to mark though anyway
+        good_addr = ZAddress::good(addr);
+    } else if (ZAddress::is_remapped(addr)) {
+        // Already remapped, but also needs to be marked
+        good_addr = ZAddress::good(addr);
+    } else if (ZAddress::is_oneof_keep(addr)) {
+        good_addr = ZAddress::currentkeep(addr);
+    }else{
+        // Needs to be both remapped and marked
+        good_addr = remap(addr);
+    }
 
   // Mark
   if (should_mark_through<finalizable>(addr)) {
-    ZHeap::heap()->mark_object<follow, finalizable, publish>(good_addr);
+    ZHeap::heap()->mark_object<gc_thread, follow, finalizable, publish>(good_addr);
   }
 
   if (finalizable) {
@@ -114,23 +112,19 @@ uintptr_t ZBarrier::remap(uintptr_t addr) {
 
 uintptr_t ZBarrier::relocate(uintptr_t addr) {
   assert(!ZAddress::is_good(addr), "Should not be good");
-  assert(!ZAddress::is_weak_good(addr), "Should not be weak good");
-  assert(!ZAddress::is_oneof_keep(addr), "Should not be keep");
-  if(ZAddress::is_oneof_keep(addr)){
-      return ZAddress::currentkeep(addr);
-  }
+    // assert(!ZAddress::is_oneof_keep(addr), "Should not be keep");
+    if(ZAddress::is_oneof_keep(addr)){
+        return ZAddress::currentkeep(addr);
+    }
   return ZHeap::heap()->relocate_object(addr);
 }
 
 uintptr_t ZBarrier::relocate_or_mark(uintptr_t addr) {
-    if(during_relocate()){
-        return relocate(addr);
-    } else
-       return mark<Follow, Strong, Publish>(addr);
+  return during_relocate() ? relocate(addr) : mark<AnyThread, Follow, Strong, Publish>(addr);
 }
 
 uintptr_t ZBarrier::relocate_or_mark_no_follow(uintptr_t addr) {
-  return during_relocate() ? relocate(addr) : mark<DontFollow, Strong, Publish>(addr);
+  return during_relocate() ? relocate(addr) : mark<AnyThread, DontFollow, Strong, Publish>(addr);
 }
 
 uintptr_t ZBarrier::relocate_or_remap(uintptr_t addr) {
@@ -184,6 +178,13 @@ uintptr_t ZBarrier::weak_load_barrier_on_phantom_oop_slow_path(uintptr_t addr) {
 //
 // Keep alive barrier
 //
+uintptr_t ZBarrier::keep_alive_barrier_on_oop_slow_path(uintptr_t addr) {
+  assert(during_mark(), "Invalid phase");
+
+  // Mark
+  return mark<AnyThread, Follow, Strong, Overflow>(addr);
+}
+
 uintptr_t ZBarrier::keep_alive_barrier_on_weak_oop_slow_path(uintptr_t addr) {
   const uintptr_t good_addr = weak_load_barrier_on_oop_slow_path(addr);
   assert(ZHeap::heap()->is_object_strongly_live(good_addr), "Should be live");
@@ -201,16 +202,18 @@ uintptr_t ZBarrier::keep_alive_barrier_on_phantom_oop_slow_path(uintptr_t addr) 
 //
 uintptr_t ZBarrier::mark_barrier_on_oop_slow_path(uintptr_t addr) {
   assert(during_mark(), "Invalid phase");
+  assert(ZThread::is_worker(), "Invalid thread");
 
   // Mark
-  return mark<Follow, Strong, Overflow>(addr);
+  return mark<GCThread, Follow, Strong, Overflow>(addr);
 }
 
 uintptr_t ZBarrier::mark_barrier_on_finalizable_oop_slow_path(uintptr_t addr) {
   assert(during_mark(), "Invalid phase");
+  assert(ZThread::is_worker(), "Invalid thread");
 
   // Mark
-  return mark<Follow, Finalizable, Overflow>(addr);
+  return mark<GCThread, Follow, Finalizable, Overflow>(addr);
 }
 
 //
@@ -254,6 +257,20 @@ oop ZBarrier::weak_load_barrier_on_phantom_oop_field_preloaded(volatile narrowOo
   ShouldNotReachHere();
   return NULL;
 }
+
+#ifdef ASSERT
+
+// ON_WEAK barriers should only ever be applied to j.l.r.Reference.referents.
+void ZBarrier::verify_on_weak(volatile oop* referent_addr) {
+  if (referent_addr != NULL) {
+    uintptr_t base = (uintptr_t)referent_addr - java_lang_ref_Reference::referent_offset();
+    oop obj = cast_to_oop(base);
+    assert(oopDesc::is_oop(obj), "Verification failed for: ref " PTR_FORMAT " obj: " PTR_FORMAT, (uintptr_t)referent_addr, base);
+    assert(java_lang_ref_Reference::is_referent_field(obj, java_lang_ref_Reference::referent_offset()), "Sanity");
+  }
+}
+
+#endif
 
 void ZLoadBarrierOopClosure::do_oop(oop* p) {
   ZBarrier::load_barrier_on_oop_field(p);

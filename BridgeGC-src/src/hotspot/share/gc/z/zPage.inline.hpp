@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,12 @@
 #ifndef SHARE_GC_Z_ZPAGE_INLINE_HPP
 #define SHARE_GC_Z_ZPAGE_INLINE_HPP
 
+#include "gc/z/zPage.hpp"
+
 #include "gc/z/zAddress.inline.hpp"
 #include "gc/z/zGlobals.hpp"
 #include "gc/z/zLiveMap.inline.hpp"
 #include "gc/z/zNUMA.hpp"
-#include "gc/z/zPage.hpp"
 #include "gc/z/zPhysicalMemory.inline.hpp"
 #include "gc/z/zVirtualMemory.inline.hpp"
 #include "runtime/atomic.hpp"
@@ -152,10 +153,6 @@ inline bool ZPage::is_keep(){
     return _keep;
 }
 
-inline bool ZPage::is_direct(){
-    return _direct;
-}
-
 inline bool ZPage::is_relocatable() const {
   return _seqnum < ZGlobalSeqNum;
 }
@@ -179,13 +176,20 @@ inline bool ZPage::is_marked() const {
 }
 
 inline bool ZPage::is_object_marked(uintptr_t addr) const {
+  assert(is_relocatable(), "Invalid page state");
   const size_t index = ((ZAddress::offset(addr) - start()) >> object_alignment_shift()) * 2;
   return _livemap.get(index);
 }
 
 inline bool ZPage::is_object_strongly_marked(uintptr_t addr) const {
+  assert(is_relocatable(), "Invalid page state");
   const size_t index = ((ZAddress::offset(addr) - start()) >> object_alignment_shift()) * 2;
   return _livemap.get(index + 1);
+}
+
+template <bool finalizable>
+inline bool ZPage::is_object_marked(uintptr_t addr) const {
+  return finalizable ? is_object_marked(addr) : is_object_strongly_marked(addr);
 }
 
 inline bool ZPage::is_object_live(uintptr_t addr) const {
@@ -237,12 +241,8 @@ inline uintptr_t ZPage::alloc_object(size_t size) {
   }
 
   _top = new_top;
-  /*if(this->is_keep()){
-      log_info(gc, heap)("Alloc Keep!");
-      return ZAddress::keep(addr);
-  }
-  else*/
-      return ZAddress::good(addr);
+
+  return ZAddress::good(addr);
 }
 
 inline uintptr_t ZPage::alloc_object_atomic(size_t size) {
@@ -261,12 +261,7 @@ inline uintptr_t ZPage::alloc_object_atomic(size_t size) {
     const uintptr_t prev_top = Atomic::cmpxchg(&_top, addr, new_top);
     if (prev_top == addr) {
       // Success
-        /*if(this->is_keep()){
-            log_info(gc, heap)("Alloc Keep!");
-            return ZAddress::keep(addr);
-        }
-        else*/
-            return ZAddress::good(addr);
+      return ZAddress::good(addr);
     }
 
     // Retry
@@ -321,9 +316,5 @@ inline bool ZPage::undo_alloc_object_atomic(uintptr_t addr, size_t size) {
 inline void ZPage::set_keep(bool keep) {
     this->_keep = keep;
 }
-
-/*inline void ZPage::set_direct(bool direct) {
-    this->_direct = direct;
-}*/
 
 #endif // SHARE_GC_Z_ZPAGE_INLINE_HPP

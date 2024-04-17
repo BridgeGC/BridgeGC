@@ -32,7 +32,6 @@ public:
   static Address address_bad_mask_from_thread(Register thread);
   static Address address_keep_mask_from_thread(Register thread);
   static Address address_bad_mask_from_jni_env(Register env);
-  static Address address_keep_mask_from_jni_env(Register env);
 };
 
 #include CPU_HEADER(gc/z/zBarrierSetAssembler)

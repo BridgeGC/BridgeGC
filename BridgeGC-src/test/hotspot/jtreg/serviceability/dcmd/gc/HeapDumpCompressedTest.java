@@ -79,7 +79,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  *          java.compiler
  *          java.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UseBridgeGC HeapDumpCompressedTest
+ * @run main/othervm -XX:+UseZGC HeapDumpCompressedTest
  */
 
 /*

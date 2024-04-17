@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,40 +38,40 @@ public:
   static void flip_to_marked();
   static void flip_to_remapped();
 
-  static bool is_null(uintptr_t value);
-  static bool is_bad(uintptr_t value);
-  static bool is_good(uintptr_t value);
-  static bool is_pure_good(uintptr_t value);
-  static bool is_keep(uintptr_t value);
-  static bool is_oneof_keep(uintptr_t value);
-  static bool is_current_keep(uintptr_t value);
-  static bool is_good_or_null(uintptr_t value);
-  static bool is_weak_bad(uintptr_t value);
-  static bool is_weak_good(uintptr_t value);
-  static bool is_weak_good_or_null(uintptr_t value);
-  static bool is_marked(uintptr_t value);
-  static bool is_pure_marked(uintptr_t value);
-  static bool is_marked_or_null(uintptr_t value);
-  static bool is_finalizable(uintptr_t value);
-  static bool is_finalizable_good(uintptr_t value);
-  static bool is_remapped(uintptr_t value);
-  static bool is_in(uintptr_t value);
+    static bool is_null(uintptr_t value);
+    static bool is_bad(uintptr_t value);
+    static bool is_good(uintptr_t value);
+    static bool is_pure_good(uintptr_t value);
+    static bool is_keep(uintptr_t value);
+    static bool is_oneof_keep(uintptr_t value);
+    static bool is_current_keep(uintptr_t value);
+    static bool is_good_or_null(uintptr_t value);
+    static bool is_weak_bad(uintptr_t value);
+    static bool is_weak_good(uintptr_t value);
+    static bool is_weak_good_or_null(uintptr_t value);
+    static bool is_marked(uintptr_t value);
+    static bool is_pure_marked(uintptr_t value);
+    static bool is_marked_or_null(uintptr_t value);
+    static bool is_finalizable(uintptr_t value);
+    static bool is_finalizable_good(uintptr_t value);
+    static bool is_remapped(uintptr_t value);
+    static bool is_in(uintptr_t value);
 
-  static uintptr_t address(uintptr_t value);
-  static uintptr_t offset(uintptr_t value);
-  static uintptr_t good(uintptr_t value);
-  static uintptr_t goodOrKeep(uintptr_t value);
-  static uintptr_t keep(uintptr_t value);
-  static uintptr_t anotherkeep(uintptr_t value);
-  static uintptr_t currentkeep(uintptr_t value);
-  static uintptr_t good_or_null(uintptr_t value);
-  static uintptr_t keep_or_null(uintptr_t value);
-  static uintptr_t finalizable_good(uintptr_t value);
-  static uintptr_t marked(uintptr_t value);
-  static uintptr_t marked0(uintptr_t value);
-  static uintptr_t marked1(uintptr_t value);
-  static uintptr_t remapped(uintptr_t value);
-  static uintptr_t remapped_or_null(uintptr_t value);
+    static uintptr_t address(uintptr_t value);
+    static uintptr_t offset(uintptr_t value);
+    static uintptr_t good(uintptr_t value);
+    static uintptr_t goodOrKeep(uintptr_t value);
+    static uintptr_t keep(uintptr_t value);
+    static uintptr_t anotherkeep(uintptr_t value);
+    static uintptr_t currentkeep(uintptr_t value);
+    static uintptr_t good_or_null(uintptr_t value);
+    static uintptr_t keep_or_null(uintptr_t value);
+    static uintptr_t finalizable_good(uintptr_t value);
+    static uintptr_t marked(uintptr_t value);
+    static uintptr_t marked0(uintptr_t value);
+    static uintptr_t marked1(uintptr_t value);
+    static uintptr_t remapped(uintptr_t value);
+    static uintptr_t remapped_or_null(uintptr_t value);
 };
 
 #endif // SHARE_GC_Z_ZADDRESS_HPP

@@ -76,7 +76,6 @@ class JNIHandles : AllStatic {
   inline static oop resolve(jobject handle);
   // Resolve handle into oop, result guaranteed not to be null
   inline static oop resolve_non_null(jobject handle);
-  inline static oop resolve_unsafe(jobject handle);
   // Resolve externally provided handle into oop with some guards
   static oop resolve_external_guard(jobject handle);
 

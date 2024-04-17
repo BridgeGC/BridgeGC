@@ -26,23 +26,24 @@
 #define SHARE_GC_SHARED_COLLECTEDHEAP_INLINE_HPP
 
 #include "gc/shared/collectedHeap.hpp"
+
 #include "gc/shared/memAllocator.hpp"
 #include "oops/oop.inline.hpp"
 #include "utilities/align.hpp"
 
 inline oop CollectedHeap::obj_allocate(Klass* klass, bool annotated, int size, TRAPS) {
-  ObjAllocator allocator(klass, size, THREAD);
-  return allocator.allocate(annotated);
+    ObjAllocator allocator(klass, size, THREAD);
+    return allocator.allocate(annotated);
 }
 
 inline oop CollectedHeap::array_allocate(Klass* klass, bool annotated, int size, int length, bool do_zero, TRAPS) {
-  ObjArrayAllocator allocator(klass, size, length, do_zero, THREAD);
-  return allocator.allocate(annotated);
+    ObjArrayAllocator allocator(klass, size, length, do_zero, THREAD);
+    return allocator.allocate(annotated);
 }
 
 inline oop CollectedHeap::class_allocate(Klass* klass, int size, TRAPS) {
   ClassAllocator allocator(klass, size, THREAD);
-  return allocator.allocate(0);
+  return allocator.allocate(false);
 }
 
 #endif // SHARE_GC_SHARED_COLLECTEDHEAP_INLINE_HPP

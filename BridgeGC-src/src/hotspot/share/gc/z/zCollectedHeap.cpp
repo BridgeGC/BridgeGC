@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 #include <gc/shared/oopStorageSet.hpp>
 #include "precompiled.hpp"
+#include "classfile/classLoaderData.hpp"
 #include "gc/shared/gcHeapSummary.hpp"
 #include "gc/shared/suspendibleThreadSet.hpp"
 #include "gc/z/zCollectedHeap.hpp"
@@ -52,8 +53,8 @@ ZCollectedHeap::ZCollectedHeap() :
     _barrier_set(),
     _initialize(&_barrier_set),
     _heap(),
-    _director(new ZDirector()),
     _driver(new ZDriver()),
+    _director(new ZDirector(_driver)),
     _stat(new ZStat()),
     _runtime_workers(),
     _KeepCount(0),
@@ -71,7 +72,8 @@ jint ZCollectedHeap::initialize() {
   if (!_heap.is_initialized()) {
     return JNI_ENOMEM;
   }
-  _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true);
+
+  _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true, mtInternal);
 
   Universe::calculate_verify_data((HeapWord*)0, (HeapWord*)UINTPTR_MAX);
 
@@ -84,11 +86,11 @@ void ZCollectedHeap::set_keepObj(oop* p) {
 }
 
 void ZCollectedHeap::release_oop_storage() {
-    delete _data_oop_storage;
+    operator delete(_data_oop_storage);
 }
 
 void ZCollectedHeap::recreate_oop_storage() {
-    _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true);
+    _data_oop_storage = OopStorageSet::recreate_strong("Keep Data Objects OopStorage", true, mtInternal);
 }
 
 void ZCollectedHeap::initialize_serviceability() {
@@ -152,25 +154,14 @@ HeapWord* ZCollectedHeap::allocate_new_tlab(size_t min_size, size_t requested_si
     *actual_size = requested_size;
   }
 
-  /*if(_heap.is_object_in_keep(addr)){
-      log_info(gc, heap)("Why is in Keep page?");
-  }*/
   return (HeapWord*)addr;
 }
 
 HeapWord* ZCollectedHeap::allocate_new_tklab(size_t* actual_size) {
-    //const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(requested_size));
     const uintptr_t addr = _heap.alloc_tklab(ZPageSizeSmall);
-    /*_tklabCount++;
-    if(_tklabCount/(1024)!=(_tklabCount-1)/(1024)){
-        log_info(gc, heap)("Keep TLAB: " SIZE_FORMAT ,_tklabCount);
-    }*/
     if (addr != 0) {
         *actual_size = ZUtils::bytes_to_words(ZPageSizeSmall);
     }
-    /*if(!_heap.is_object_in_keep(addr)){
-        log_info(gc, heap)("Why not in Keep page?");
-    }*/
     return (HeapWord*)addr;
 }
 
@@ -184,10 +175,9 @@ oop ZCollectedHeap::array_allocate(Klass* klass, bool annotated, int size, int l
 }
 
 HeapWord* ZCollectedHeap::mem_allocate(size_t size, bool* gc_overhead_limit_was_exceeded, bool annotated) {
-  const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(size));
-  return (HeapWord*)_heap.alloc_object(size_in_bytes,annotated);
+    const size_t size_in_bytes = ZUtils::words_to_bytes(align_object_size(size));
+    return (HeapWord*)_heap.alloc_object(size_in_bytes,annotated);
 }
-
 MetaWord* ZCollectedHeap::satisfy_failed_metadata_allocation(ClassLoaderData* loader_data,
                                                              size_t size,
                                                              Metaspace::MetadataType mdtype) {
@@ -264,11 +254,16 @@ bool ZCollectedHeap::uses_stack_watermark_barrier() const {
 }
 
 GrowableArray<GCMemoryManager*> ZCollectedHeap::memory_managers() {
-  return GrowableArray<GCMemoryManager*>(1, 1, _heap.serviceability_memory_manager());
+  GrowableArray<GCMemoryManager*> memory_managers(2);
+  memory_managers.append(_heap.serviceability_cycle_memory_manager());
+  memory_managers.append(_heap.serviceability_pause_memory_manager());
+  return memory_managers;
 }
 
 GrowableArray<MemoryPool*> ZCollectedHeap::memory_pools() {
-  return GrowableArray<MemoryPool*>(1, 1, _heap.serviceability_memory_pool());
+  GrowableArray<MemoryPool*> memory_pools(1);
+  memory_pools.append(_heap.serviceability_memory_pool());
+  return memory_pools;
 }
 
 void ZCollectedHeap::object_iterate(ObjectClosure* cl) {

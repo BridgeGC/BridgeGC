@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,8 @@
 #include "jvm.h"
 #include "classfile/javaClasses.inline.hpp"
 #include "classfile/resolutionErrors.hpp"
+#include "classfile/systemDictionary.hpp"
+#include "classfile/vmClasses.hpp"
 #include "interpreter/bootstrapInfo.hpp"
 #include "interpreter/linkResolver.hpp"
 #include "logging/log.hpp"
@@ -183,7 +185,7 @@ void BootstrapInfo::resolve_args(TRAPS) {
 
   if (!use_BSCI) {
     // return {arg...}; resolution of arguments is done immediately, before JDK code is called
-    objArrayOop args_oop = oopFactory::new_objArray(SystemDictionary::Object_klass(), _argc, CHECK);
+    objArrayOop args_oop = oopFactory::new_objArray(vmClasses::Object_klass(), _argc, CHECK);
     objArrayHandle args(THREAD, args_oop);
     _pool->copy_bootstrap_arguments_at(_bss_index, 0, _argc, args, 0, true, Handle(), CHECK);
     oop arg_oop = ((_argc == 1) ? args->obj_at(0) : (oop)NULL);
@@ -197,7 +199,7 @@ void BootstrapInfo::resolve_args(TRAPS) {
     }
   } else {
     // return {arg_count, pool_index}; JDK code must pull the arguments as needed
-    typeArrayOop ints_oop = oopFactory::new_typeArray(0, T_INT, 2, CHECK);
+    typeArrayOop ints_oop = oopFactory::new_typeArray(T_INT, 2, CHECK);
     ints_oop->int_at_put(0, _argc);
     ints_oop->int_at_put(1, _bss_index);
     _arg_values = Handle(THREAD, ints_oop);

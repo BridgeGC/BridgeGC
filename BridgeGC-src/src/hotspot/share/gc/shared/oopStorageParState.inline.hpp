@@ -25,8 +25,9 @@
 #ifndef SHARE_GC_SHARED_OOPSTORAGEPARSTATE_INLINE_HPP
 #define SHARE_GC_SHARED_OOPSTORAGEPARSTATE_INLINE_HPP
 
-#include "gc/shared/oopStorage.inline.hpp"
 #include "gc/shared/oopStorageParState.hpp"
+
+#include "gc/shared/oopStorage.inline.hpp"
 #include "metaprogramming/conditional.hpp"
 #include "utilities/macros.hpp"
 
@@ -51,25 +52,24 @@ template<bool is_const, typename F>
 inline void OopStorage::BasicParState::iterate(F f) {
   // Wrap f in ATF so we can use Block::iterate.
   AlwaysTrueFn<F> atf_f(f);
-  IterationData data = {};
-  if(!storage()->_datatype){
-      while (claim_next_segment(&data)) {
-          assert(data._segment_start < data._segment_end, "invariant");
-          assert(data._segment_end <= _block_count, "invariant");
-          typedef typename Conditional<is_const, const Block*, Block*>::type BlockPtr;
-          size_t i = data._segment_start;
-          do {
-              BlockPtr block = _active_array->at(i);
-              block->iterate(atf_f);
-          } while (++i < data._segment_end);
-      }
-  }else{
-      auto iter = storage()->_follower_array.begin();
-      for( ; iter!=storage()->_follower_array.end(); ++iter){
-          atf_f(iter.operator*());
-      }
-  }// zero initialize.
-
+  IterationData data = {};      // zero initialize.
+    if(!storage()->_datatype){
+        while (claim_next_segment(&data)) {
+            assert(data._segment_start < data._segment_end, "invariant");
+            assert(data._segment_end <= _block_count, "invariant");
+            typedef typename Conditional<is_const, const Block*, Block*>::type BlockPtr;
+            size_t i = data._segment_start;
+            do {
+                BlockPtr block = _active_array->at(i);
+                block->iterate(atf_f);
+            } while (++i < data._segment_end);
+        }
+    }else{
+        auto iter = storage()->_follower_array.begin();
+        for( ; iter!=storage()->_follower_array.end(); ++iter){
+            atf_f(iter.operator*());
+        }
+    }
 }
 
 template<bool concurrent, bool is_const>

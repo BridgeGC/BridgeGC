@@ -161,8 +161,8 @@ public class ArrayList<E> extends AbstractList<E>
                                                initialCapacity);
         }
     }
-	
-	/**
+
+/**
      * Constructs an empty list with the specified initial capacity.
      *
      * @param  initialCapacity  the initial capacity of the list
@@ -174,8 +174,8 @@ public class ArrayList<E> extends AbstractList<E>
 		int result = initialCapacity + 1;
 		this.elementData = new @DataObj Object[result];
     }
-	
-	
+
+
 	/**
      * Constructs an empty list with the specified initial capacity.
      *
@@ -184,9 +184,9 @@ public class ArrayList<E> extends AbstractList<E>
      *         is negative
      */
     public ArrayList(Object[] keep) {
-		
+
 		this.elementData = keep;
-		
+
     }
 
     /**

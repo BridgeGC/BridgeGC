@@ -301,6 +301,7 @@ class NewTypeArrayStub: public CodeStub {
 #endif // PRODUCT
 };
 
+
 class NewTypeKeepArrayStub: public CodeStub {
 private:
     LIR_Opr       _klass_reg;
@@ -324,7 +325,6 @@ public:
 #endif // PRODUCT
 };
 
-
 class NewObjectArrayStub: public CodeStub {
  private:
   LIR_Opr        _klass_reg;
@@ -347,6 +347,7 @@ class NewObjectArrayStub: public CodeStub {
 #endif // PRODUCT
 };
 
+
 class NewObjectKeepArrayStub: public CodeStub {
 private:
     LIR_Opr        _klass_reg;
@@ -368,7 +369,6 @@ public:
     virtual void print_name(outputStream* out) const { out->print("NewObjectKeepArrayStub"); }
 #endif // PRODUCT
 };
-
 
 class MonitorAccessStub: public CodeStub {
  protected:
