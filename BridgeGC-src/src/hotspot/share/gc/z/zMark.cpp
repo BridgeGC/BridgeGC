@@ -231,7 +231,7 @@ void ZMark::follow_array(uintptr_t addr, size_t size, bool finalizable) {
 
 void ZMark::follow_partial_array(ZMarkStackEntry entry, bool finalizable) {
     const uintptr_t inter_addr = entry.partial_array_offset() << ZMarkPartialArrayMinSizeShift;
-    const uintptr_t addr = ZHeap::heap()->is_object_in_keep(inter_addr)? ZAddress::keep(inter_addr) : ZAddress::good(inter_addr);
+    const uintptr_t addr = ZHeap::heap()->is_object_in_keep(inter_addr)? ZAddress::goodOrKeep(inter_addr) : ZAddress::good(inter_addr);
   const size_t size = entry.partial_array_length() * oopSize;
 
   follow_array(addr, size, finalizable);
@@ -259,23 +259,23 @@ public:
 
 void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
     if (finalizable) {
-        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//            ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
+//            cl.do_klass(obj->klass());
+//        }
+//        else{
             ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
             cl.do_klass(obj->klass());
-        }
-        else{
-            ZMarkBarrierOopClosure<true /* finalizable */, false> cl;
-            cl.do_klass(obj->klass());
-        }
+//        }
     } else {
-        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//            ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
+//            cl.do_klass(obj->klass());
+//        }
+//        else{
             ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
             cl.do_klass(obj->klass());
-        }
-        else{
-            ZMarkBarrierOopClosure<false /* finalizable */, false> cl;
-            cl.do_klass(obj->klass());
-        }
+//        }
     }
 
     const uintptr_t addr = (uintptr_t)obj->base();
@@ -286,23 +286,23 @@ void ZMark::follow_array_object(objArrayOop obj, bool finalizable) {
 
 void ZMark::follow_object(oop obj, bool finalizable) {
     if (finalizable) {
-        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//            ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
+//            obj->oop_iterate(&cl);
+//        }
+//        else{
             ZMarkBarrierOopClosure<true /* finalizable */, true> cl;
             obj->oop_iterate(&cl);
-        }
-        else{
-            ZMarkBarrierOopClosure<true /* finalizable */, false> cl;
-            obj->oop_iterate(&cl);
-        }
+//        }
     } else {
-        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//        if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(ZOop::to_address(obj))){
+//            ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
+//            obj->oop_iterate(&cl);
+//        }
+//        else{
             ZMarkBarrierOopClosure<false /* finalizable */, true> cl;
             obj->oop_iterate(&cl);
-        }
-        else{
-            ZMarkBarrierOopClosure<false /* finalizable */, false> cl;
-            obj->oop_iterate(&cl);
-        }
+//        }
     }
 }
 
@@ -628,7 +628,8 @@ void ZMark::work(uint64_t timeout_in_micros) {
 
 class ZMarkOopClosure : public OopClosure {
   virtual void do_oop(oop* p) {
-    ZBarrier::mark_barrier_on_oop_field(p, false /* finalizable */, false);
+    ZBarrier::mark_barrier_on_oop_field(p, false, false);
+    // ZBarrier::load_barrier_on_oop_field(p);
   }
 
   virtual void do_oop(narrowOop* p) {

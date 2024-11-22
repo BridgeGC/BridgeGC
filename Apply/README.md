@@ -30,7 +30,7 @@ In Spark Tungsten, we apply annotations to `MemoryBlock`. The role of `MemoryBlo
 In Cassandra, we can also apply annotations to `java.nio.ByteBuffer`. `java.nio.ByteBuffers` are used by `Memtable` of Cassandra. A `Memtable` buffers recent writes in memory, which is flushed to disk when its size reaches a threshold. Millions of `java.nio.ByteBuffer` are referenced by Memtable to hold buffered data, which are discarded when the Memtable is flushed. We can apply annotations to as `java.nio.ByteBuffer` for Memtable as shown in Figure 4.
 
 <div align=center>
-<img decoding="async" src="../Figures/cassandra.svg" width="50%">
+<img decoding="async" src="../Figures/BufferCell.svg" width="50%">
 
-**Figure 4: Apply BridgeGC annotations to `ByteBuffer` for Memtable.**
+**Figure 4: Apply BridgeGC annotations to `BufferCell` for Memtable.**
 </div>

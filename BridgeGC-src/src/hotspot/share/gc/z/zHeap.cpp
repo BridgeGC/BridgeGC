@@ -375,10 +375,13 @@ void ZHeap::select_relocation_set() {
     if (page->is_marked()) {
       // Register live page
         if(page->is_keep()){
+//            log_info(gc, heap)("Skip keep");
             continue;
         }
       selector.register_live_page(page);
     } else {
+//        if(ZDriver::KeepPermit && page->is_keep())
+//            log_info(gc, heap)("Release keep");
       // Register empty page
       selector.register_empty_page(page);
 

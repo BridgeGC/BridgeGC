@@ -90,6 +90,7 @@ private:
 
 protected:
   virtual Node* load_at_resolved(C2Access& access, const Type* val_type) const;
+    virtual Node* store_at_resolved(C2Access& access, C2AccessValue& val) const;
   virtual Node* atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access,
                                                Node* expected_val,
                                                Node* new_val,

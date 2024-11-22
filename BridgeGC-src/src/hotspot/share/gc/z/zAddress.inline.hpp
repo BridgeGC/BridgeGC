@@ -87,6 +87,10 @@ inline bool ZAddress::is_marked(uintptr_t value) {
     return value & ZAddressMetadataKeepMarked;
 }
 
+inline bool ZAddress::is_normal(uintptr_t value) {
+    return value & ZAddressNormalMask;
+}
+
 inline bool ZAddress::is_pure_marked(uintptr_t value) {
     return value & ZAddressMetadataMarked;
 }

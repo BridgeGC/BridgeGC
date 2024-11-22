@@ -39,7 +39,8 @@
     int      con_size_in_bytes,        // object size in bytes if   known at compile time
     Register t1,                       // temp register
     Register t2,                       // temp register
-    Label&   slow_case                 // continuation point if fast allocation fails
+    Label&   slow_case,                 // continuation point if fast allocation fails
+    bool annotated
   );
 
   void initialize_header(Register obj, Register klass, Register len, Register t1, Register t2);
@@ -77,7 +78,7 @@
   // header_size: size of object header in words
   // object_size: total size of object in words
   // slow_case  : exit to slow case implementation if fast allocation fails
-  void allocate_object(Register obj, Register t1, Register t2, int header_size, int object_size, Register klass, Label& slow_case);
+  void allocate_object(Register obj, Register t1, Register t2, int header_size, int object_size, Register klass, Label& slow_case, bool annotated);
 
   enum {
     max_array_allocation_length = 0x00FFFFFF
@@ -90,7 +91,7 @@
   // header_size: size of object header in words
   // f          : element scale factor
   // slow_case  : exit to slow case implementation if fast allocation fails
-  void allocate_array(Register obj, Register len, Register t, Register t2, int header_size, Address::ScaleFactor f, Register klass, Label& slow_case);
+  void allocate_array(Register obj, Register len, Register t, Register t2, int header_size, Address::ScaleFactor f, Register klass, Label& slow_case, bool annotated);
 
   int  rsp_offset() const { return _rsp_offset; }
   void set_rsp_offset(int n) { _rsp_offset = n; }

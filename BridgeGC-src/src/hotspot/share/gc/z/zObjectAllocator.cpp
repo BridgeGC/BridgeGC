@@ -192,7 +192,7 @@ uintptr_t ZObjectAllocator::alloc_object(size_t size, ZAllocationFlags flags) {
     if (size <= ZObjectSizeLimitSmall) {
         // Small
         if(flags.Keep_alloc()){
-            return alloc_small_share_keep_object(size,flags);
+            return ZAddress::goodOrKeep(alloc_small_share_keep_object(size,flags));
         }
         return alloc_small_object(size, flags);
     } else if (size <= ZObjectSizeLimitMedium) {

@@ -66,9 +66,22 @@ inline void OopStorage::BasicParState::iterate(F f) {
         }
     }else{
         auto iter = storage()->_follower_array.begin();
+//        int start_length = storage()->_follower_array.length();
+//        if(start_length!=0){
+//            oop* lastone = storage()->_follower_array.at(start_length-1);
+//            log_info(gc, heap)("Start length %d : " PTR_FORMAT , start_length, reinterpret_cast<uintptr_t>(lastone));
+//        }
         for( ; iter!=storage()->_follower_array.end(); ++iter){
+            MutexLocker ml(storage()->_allocation_mutex, Mutex::_no_safepoint_check_flag);
             atf_f(iter.operator*());
+            MutexUnlocker ul(storage()->_allocation_mutex, Mutex::_no_safepoint_check_flag);
         }
+//        int end_length = storage()->_follower_array.length();
+//        if(end_length!=0){
+//            oop* backone = storage()->_follower_array.at(end_length-1);
+//            log_info(gc, heap)("Start length %d : " PTR_FORMAT , end_length, reinterpret_cast<uintptr_t>(backone));
+//            int i = 0;
+//        }
     }
 }
 

@@ -21,6 +21,7 @@
  * questions.
  */
 
+#include "gc/z/zHeap.inline.hpp"
 #include "precompiled.hpp"
 #include "gc/z/zBarrier.inline.hpp"
 #include "gc/z/zBarrierSetRuntime.hpp"
@@ -31,28 +32,34 @@ JRT_LEAF(oopDesc*, ZBarrierSetRuntime::load_barrier_on_oop_field_preloaded(oopDe
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::check_value(oopDesc* o, oop* p))
-    if(o!=NULL){
-        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+//    if(o!=NULL){
+        // bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
         ZCollectedHeap::set_keepObj(p);
-        // log_info(gc, heap)("C0: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
-    }
+//        log_info(gc, heap)("C0: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    } else{
+//        log_info(gc, heap)("C0: NULLObj : " PTR_FORMAT ", Object: " PTR_FORMAT,  reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    }
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::check_c1_value(oopDesc* o, oop* p))
-    if(o!=NULL){
-        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
-        // log_info(gc, heap)("C1: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    if(o!=NULL){
+//        // bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+//        log_info(gc, heap)("C1: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
         ZCollectedHeap::set_keepObj(p);
-    }
+//    } else{
+//        log_info(gc, heap)("C1: NULLObj : " PTR_FORMAT ", Object: " PTR_FORMAT,  reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    }
 
 JRT_END
 
 JRT_LEAF(void, ZBarrierSetRuntime::check_c2_value(oopDesc* o, oop* p))
-    if(o!=NULL){
-        bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
-        // log_info(gc, heap)("C2: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    if(o!=NULL){
+//        // bool is_in = ZHeap::heap()->is_in(reinterpret_cast<uintptr_t>(o));
+//        log_info(gc, heap)("C2: %s, Address: " PTR_FORMAT ", Object: " PTR_FORMAT, o->klass_or_null()->external_name(), reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
         ZCollectedHeap::set_keepObj(p);
-    }
+//    }else{
+//        log_info(gc, heap)("C2: NULLObj : " PTR_FORMAT ", Object: " PTR_FORMAT,  reinterpret_cast<uintptr_t>(p), reinterpret_cast<uintptr_t>(o));
+//    }
 JRT_END
 
 JRT_LEAF(oopDesc*, ZBarrierSetRuntime::weak_load_barrier_on_oop_field_preloaded(oopDesc* o, oop* p))

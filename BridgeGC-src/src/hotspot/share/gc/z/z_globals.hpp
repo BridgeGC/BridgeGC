@@ -37,7 +37,8 @@
                                                                             \
   product(double, ZFragmentationLimit, 25.0,                                \
           "Maximum allowed heap fragmentation")                             \
-                                                                            \
+  product(double, BridgeFragmentationLimit, 25.0,                                \
+          "Maximum allowed heap fragmentation")                             \
   product(size_t, ZMarkStackSpaceLimit, 8*G,                                \
           "Maximum number of bytes allocated for mark stacks")              \
           range(32*M, 1024*G)                                               \

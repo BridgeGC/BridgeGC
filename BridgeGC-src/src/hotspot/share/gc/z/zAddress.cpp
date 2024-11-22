@@ -55,6 +55,7 @@ void ZAddress::initialize() {
     ZAddressMetadataMarked = ZAddressMetadataMarked0;
     ZAddressCurrentKeepMask = ZAddressKeepMask;
     ZAddressOneofKeepMask = ZAddressAnotherKeepMask | ZAddressKeepMask;
+    ZAddressNormalMask = ZAddressMetadataMarked0 | ZAddressMetadataMarked1 | ZAddressMetadataRemapped;
 
     set_good_mask(ZAddressMetadataRemapped);
 }

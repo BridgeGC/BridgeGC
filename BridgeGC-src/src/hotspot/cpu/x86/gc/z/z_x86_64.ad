@@ -53,13 +53,7 @@ static void z_keep_barrier(MacroAssembler& _masm, const MachNode* node, Address 
 
     ZKeepBarrierStubC2* const stub = ZKeepBarrierStubC2::create(node, ref_addr, ref, tmp, barrier_data);
 
-    if (ref_addr.index() == noreg && ref_addr.disp() == 0) {
-        if (ref_addr.base() != tmp) {
-            __ movptr(tmp, ref_addr.base());
-        }
-    } else {
-        __ lea(tmp, ref_addr);
-    }
+    __ lea(tmp, ref_addr);
 
     {
         IntelJccErratumAlignment intel_alignment(_masm, 10 /* jcc_size */);
@@ -69,9 +63,12 @@ static void z_keep_barrier(MacroAssembler& _masm, const MachNode* node, Address 
 
     {
         IntelJccErratumAlignment intel_alignment(_masm, 10 /* jcc_size */);
-        __ testptr(ref, Address(r15_thread, ZThreadLocalData::address_keep_mask_offset()));
-        __ jcc(Assembler::zero, *stub->entry());
+        __ testptr(ref, Address(r15_thread, ZThreadLocalData::address_normal_mask_offset()));
+        __ jcc(Assembler::zero, *stub->continuation());
     }
+
+    __ jmp(*stub->entry());
+
     __ bind(*stub->continuation());
 }
 

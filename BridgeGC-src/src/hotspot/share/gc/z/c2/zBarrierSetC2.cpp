@@ -295,6 +295,61 @@ Node* ZBarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) co
   return BarrierSetC2::load_at_resolved(access, val_type);
 }
 
+Node* ZBarrierSetC2::store_at_resolved(C2Access& access, C2AccessValue& val) const {
+    set_barrier_data(access);
+    DecoratorSet decorators = access.decorators();
+
+    bool mismatched = (decorators & C2_MISMATCHED) != 0;
+    bool unaligned = (decorators & C2_UNALIGNED) != 0;
+    bool unsafe = (decorators & C2_UNSAFE_ACCESS) != 0;
+    bool requires_atomic_access = (decorators & MO_UNORDERED) == 0;
+
+    bool in_native = (decorators & IN_NATIVE) != 0;
+    assert(!in_native || (unsafe && !access.is_oop()), "not supported yet");
+
+    MemNode::MemOrd mo = access.mem_node_mo();
+
+    Node* store;
+    if (access.is_parse_access()) {
+        C2ParseAccess& parse_access = static_cast<C2ParseAccess&>(access);
+
+        GraphKit* kit = parse_access.kit();
+        if (access.type() == T_DOUBLE) {
+            Node* new_val = kit->dstore_rounding(val.node());
+            val.set_node(new_val);
+        }
+
+        store = kit->store_to_memory(kit->control(), access.addr().node(), val.node(), access.type(),
+                                     access.addr().type(), mo, requires_atomic_access, unaligned, mismatched, unsafe, access.barrier_data());
+    } else {
+        assert(!requires_atomic_access, "not yet supported");
+        assert(access.is_opt_access(), "either parse or opt access");
+        C2OptAccess& opt_access = static_cast<C2OptAccess&>(access);
+        Node* ctl = opt_access.ctl();
+        MergeMemNode* mm = opt_access.mem();
+        PhaseGVN& gvn = opt_access.gvn();
+        const TypePtr* adr_type = access.addr().type();
+        int alias = gvn.C->get_alias_index(adr_type);
+        Node* mem = mm->memory_at(alias);
+
+        StoreNode* st = StoreNode::make(gvn, ctl, mem, access.addr().node(), adr_type, val.node(), access.type(), mo);
+        if (unaligned) {
+            st->set_unaligned_access();
+        }
+        if (mismatched) {
+            st->set_mismatched_access();
+        }
+        st->set_barrier_data(access.barrier_data());
+        store = gvn.transform(st);
+        if (store == st) {
+            mm->set_memory_at(alias, st);
+        }
+    }
+    access.set_raw_access(store);
+
+    return store;
+}
+
 Node* ZBarrierSetC2::atomic_cmpxchg_val_at_resolved(C2AtomicParseAccess& access, Node* expected_val,
                                                     Node* new_val, const Type* val_type) const {
   set_barrier_data(access);

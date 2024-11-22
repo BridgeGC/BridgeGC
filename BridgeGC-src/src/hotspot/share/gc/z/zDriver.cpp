@@ -520,27 +520,27 @@ void ZDriver::run_service() {
     // Check for out of memory condition
     check_out_of_memory();
 
-      bool findRelease = false;
-      ZBarrier::thisarray.sort(address_compare);
-      auto iter1 = ZBarrier::thisarray.begin();
-      auto iter = ZBarrier::lastarray.begin();
-      for( iter = ZBarrier::lastarray.begin();iter!=ZBarrier::lastarray.end(); ++iter){
-          while(iter1!=ZBarrier::thisarray.end() && *iter1 != *iter ){
-              ++iter1;
-          }
-          if(iter1==ZBarrier::thisarray.end())
-              break;
-      }
-      if(iter1==ZBarrier::thisarray.end() && iter!=ZBarrier::lastarray.end())
-          findRelease = true;
-
-      if(findRelease){
-          ZBarrier::lastarray.clear();
-          ShouldKeep=true;
-      }else{
-          ZBarrier::lastarray.swap(&ZBarrier::thisarray);
-      }
-      ZBarrier::thisarray.clear();
+//      bool findRelease = false;
+//      ZBarrier::thisarray.sort(address_compare);
+//      auto iter1 = ZBarrier::thisarray.begin();
+//      auto iter = ZBarrier::lastarray.begin();
+//      for( iter = ZBarrier::lastarray.begin();iter!=ZBarrier::lastarray.end(); ++iter){
+//          while(iter1!=ZBarrier::thisarray.end() && *iter1 != *iter ){
+//              ++iter1;
+//          }
+//          if(iter1==ZBarrier::thisarray.end())
+//              break;
+//      }
+//      if(iter1==ZBarrier::thisarray.end() && iter!=ZBarrier::lastarray.end())
+//          findRelease = true;
+//
+//      if(findRelease){
+//          ZBarrier::lastarray.clear();
+//          ShouldKeep=true;
+//      }else{
+//          ZBarrier::lastarray.swap(&ZBarrier::thisarray);
+//      }
+//      ZBarrier::thisarray.clear();
 
     ZBreakpoint::at_after_gc();
   }

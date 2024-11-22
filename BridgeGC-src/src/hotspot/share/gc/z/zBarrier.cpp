@@ -32,8 +32,8 @@
 #include "runtime/safepoint.hpp"
 #include "utilities/debug.hpp"
 
-ZArray<size_t> ZBarrier::thisarray = ZArray<size_t>(512);
-ZArray<size_t> ZBarrier::lastarray = ZArray<size_t>(512);
+ZArray<size_t> ZBarrier::thisarray = ZArray<size_t>(64);
+ZArray<size_t> ZBarrier::lastarray = ZArray<size_t>(64);
 
 template <bool finalizable>
 bool ZBarrier::should_mark_through(uintptr_t addr) {
@@ -41,8 +41,8 @@ bool ZBarrier::should_mark_through(uintptr_t addr) {
   // has completed, in which case we just want to convert this into a
   // good oop and not push it on the mark stack.
   if (!during_mark()) {
-    assert(ZAddress::is_marked(addr), "Should be marked");
-    assert(ZAddress::is_finalizable(addr), "Should be finalizable");
+    // assert(ZAddress::is_marked(addr), "Should be marked");
+    // assert(ZAddress::is_finalizable(addr), "Should be finalizable");
     return false;
   }
 

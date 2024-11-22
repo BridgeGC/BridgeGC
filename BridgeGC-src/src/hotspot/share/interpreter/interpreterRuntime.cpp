@@ -249,6 +249,7 @@ JRT_END
 JRT_ENTRY(void, InterpreterRuntime::newarray(JavaThread* current, BasicType type, jint size))
   bool annotated = current->last_frame().interpreter_frame_method()->is_annotated();
   oop obj = oopFactory::new_typeArray(annotated, type, size, CHECK);
+//    log_info(gc, heap)("Allocate byte[] Address: " PTR_FORMAT , reinterpret_cast<uintptr_t>(obj));
   current->set_vm_result(obj);
 JRT_END
 

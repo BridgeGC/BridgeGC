@@ -100,6 +100,7 @@ extern uintptr_t  ZAddressCurrentKeepMask;
 extern uintptr_t  ZAddressAnotherKeepMask;
 extern uintptr_t  ZAddressOneofKeepMask;
 extern uintptr_t  ZAddressGoodKeepMask;
+extern uintptr_t  ZAddressNormalMask;
 
 // The bad mask is 64 bit. Its high order 32 bits contain all possible value combinations
 // that this mask will have. Therefore, the memory where the 32 high order bits are stored,

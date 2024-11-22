@@ -22,7 +22,7 @@
  *
  */
 
-#include <gc/z/zUtils.hpp>
+#include "gc/z/zUtils.inline.hpp"
 #include "precompiled.hpp"
 #include "classfile/javaClasses.hpp"
 #include "gc/shared/allocTracer.hpp"
@@ -279,6 +279,8 @@ HeapWord* MemAllocator::allocate_inside_tlab(Allocation& allocation, bool annota
         // Try refilling the TLAB and allocating the object in it.
         return allocate_inside_tklab_slow(allocation);
     }
+
+
 
     else{
         mem = _thread->tlab().allocate(_word_size);

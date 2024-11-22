@@ -56,8 +56,12 @@ public:
                        Address src,
                        Register tmp1,
                        Register tmp_thread);
+    // #ifdef ASSERT
+//    virtual void store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
+//                          Address dst, Register val, Register tmp1, Register tmp2);
+// #endif // ASSERT
 
-#ifdef ASSERT
+// #ifdef ASSERT
   virtual void store_at(MacroAssembler* masm,
                         DecoratorSet decorators,
                         BasicType type,
@@ -65,7 +69,7 @@ public:
                         Register src,
                         Register tmp1,
                         Register tmp2);
-#endif // ASSERT
+// #endif // ASSERT
 
   virtual void arraycopy_prologue(MacroAssembler* masm,
                                   DecoratorSet decorators,

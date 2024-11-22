@@ -34,6 +34,7 @@ class ZThreadLocalData {
 private:
   uintptr_t              _address_bad_mask;
   uintptr_t              _address_keep_mask;
+  uintptr_t              _address_normal_mask;
   ZMarkThreadLocalStacks _stacks;
   oop*                   _invisible_root;
 
@@ -64,6 +65,10 @@ public:
         data(thread)->_address_keep_mask = mask;
     }
 
+    static void set_address_normal_mask(Thread* thread, uintptr_t mask) {
+        data(thread)->_address_normal_mask = mask;
+    }
+
   static ZMarkThreadLocalStacks* stacks(Thread* thread) {
     return &data(thread)->_stacks;
   }
@@ -91,6 +96,10 @@ public:
 
     static ByteSize address_keep_mask_offset() {
         return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _address_keep_mask);
+    }
+
+    static ByteSize address_normal_mask_offset() {
+        return Thread::gc_data_offset() + byte_offset_of(ZThreadLocalData, _address_normal_mask);
     }
 
   static ByteSize nmethod_disarmed_offset() {

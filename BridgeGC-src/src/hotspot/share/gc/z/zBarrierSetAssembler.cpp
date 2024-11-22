@@ -34,6 +34,10 @@ Address ZBarrierSetAssemblerBase::address_keep_mask_from_thread(Register thread)
     return Address(thread, ZThreadLocalData::address_keep_mask_offset());
 }
 
+Address ZBarrierSetAssemblerBase::address_normal_mask_from_thread(Register thread) {
+    return Address(thread, ZThreadLocalData::address_normal_mask_offset());
+}
+
 Address ZBarrierSetAssemblerBase::address_bad_mask_from_jni_env(Register env) {
   return Address(env, ZThreadLocalData::address_bad_mask_offset() - JavaThread::jni_environment_offset());
 }

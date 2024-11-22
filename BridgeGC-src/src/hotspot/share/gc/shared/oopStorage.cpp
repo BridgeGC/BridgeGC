@@ -515,7 +515,9 @@ void OopStorage::log_block_transition(Block* block, const char* new_state) const
 
 void OopStorage::append(oop* p) {
   MutexLocker ml(_allocation_mutex, Mutex::_no_safepoint_check_flag);
-  _follower_array.append(p);
+  int i = _follower_array.append(p);
+  // log_info(gc, heap)("Append at %d : Address: " PTR_FORMAT, i,  reinterpret_cast<uintptr_t>(p));
+  // MutexUnlocker ul(_allocation_mutex, Mutex::_no_safepoint_check_flag);
 }
 
 bool OopStorage::try_add_block() {

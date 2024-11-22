@@ -388,20 +388,26 @@ inline void ZBarrier::mark_barrier_on_oop_field(volatile oop* p, bool finalizabl
     } else {
 
         if (ZAddress::is_good(addr)) {
-            if(ZAddress::is_oneof_keep(addr)){
-                if (o->is_objArray())
-                    thisarray.push(addr);
+            if(ZAddress::is_current_keep(addr) && !ZDriver::KeepPermit){
+//                if (o->is_objArray())
+//                    thisarray.push(addr);
                 return;
             }
             else
                 mark_barrier_on_oop_slow_path(addr);
             // Mark through good oop
         } else {
+//            if(ZDriver::KeepPermit && ZAddress::is_oneof_keep(addr)){
+//                int i = 0;
+//            }
             // Mark through bad oop
             check = barrier<is_good_or_null_fast_path, mark_barrier_on_oop_slow_path>(p, o);
         }
     }
-    if(keep && check != NULL && !ZAddress::is_oneof_keep(addr)){
+    if(ZDriver::KeepPermit && check != NULL &&  ZAddress::is_oneof_keep((uintptr_t)p) && !ZAddress::is_oneof_keep(addr) && keep){
+//        if(ZAddress::is_oneof_keep((uintptr_t)p) && !ZAddress::is_good((uintptr_t)p)){
+//            int i = 0;
+//        }
         oop* test = const_cast<oop*>(p);
         ZCollectedHeap::set_keepObj(test);
     }

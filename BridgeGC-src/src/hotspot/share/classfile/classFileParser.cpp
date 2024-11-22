@@ -2852,14 +2852,29 @@ Method* ClassFileParser::parse_method(const ClassFileStream* const cfs,
         data += 2;
         for (u2 i = 0; i < n_anno; i++) {
             u1 anno_target = *data;
-            u1 dsize = *(data + 3);
-            u2 anno_type_index = Bytes::get_Java_u2(data + 4 + dsize*2);
-            Symbol* type_name = cp->symbol_at(anno_type_index);
-            if(anno_target == 68 && type_name->ends_with("DataObj;",8)){
-                shouldkeep = true;
-                break;
+//            log_info(gc, heap)("Target type :%x", anno_target);
+            u1 dsize = (anno_target == 71)?*(data + 4):*(data + 3);
+            if(anno_target == 68){
+                u2 anno_type_index = Bytes::get_Java_u2(data + 4 + dsize*2);
+                Symbol* type_name = cp->symbol_at(anno_type_index);
+                if(type_name->ends_with("DataObj;",8)){
+                    shouldkeep = true;
+                    break;
+                }
             }
-            data += 8 + dsize*2;
+//            Symbol* name = cp->symbol_at(name_index);
+//            Symbol* signature = cp->symbol_at(signature_index);
+//            char* namebuffer = (char*) malloc(sizeof(char) * name->utf8_length() + 1);
+//            char* methodbuffer = (char*) malloc(sizeof(char) * signature->utf8_length() + 1);
+//            log_info(gc, heap)("M:%s", name->as_C_string());
+//            log_info(gc, heap)("M1:%s", signature->as_C_string());
+            u2 num_element_value_pairs = Bytes::get_Java_u2(data + 6 + dsize*2);
+            if(anno_target == 71){
+                data += 9 + dsize*2;
+            }else{
+                data += 8 + dsize*2;
+            }
+
         }
         if(shouldkeep){
             m->annotated(shouldkeep, aa);

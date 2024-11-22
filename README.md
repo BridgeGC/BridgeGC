@@ -13,7 +13,16 @@ BridgeGC is an efficient cross-level garbage collector for big data frameworks s
 Download our source code, follow the [instructions](https://openjdk.org/groups/build/doc/building.html) to build the OpenJDK JVM, resulting in a JVM with BridgeGC. 
 
 ## Annotations
-We provide two simple annotations, `@DataObj` and `System.Reclaim()`, that can be used by the framework developers to annotate the creation and release points of data objects. Specifically, the annotation `@DataObj` is used along with the keyword `new` to denote the creation of data objects. The annotation `System.Reclaim()` is used to denote the release of a batch of data objects. We show how we apply annotations in Spark, Flink and Cassandra briefly as follows and more details can be found [here](Apply/README.md).
+We provide two simple annotations, `@DataObj` and `System.Reclaim()`, 
+that can be used by the framework developers to annotate the creation 
+and release points of data objects. 
+Specifically, the annotation `@DataObj` is used 
+along with the keyword `new` to denote the creation of data objects. 
+The annotation `System.Reclaim()` is used to denote the 
+release of a batch of data objects. 
+We show how we apply annotations in Spark, Flink 
+and Cassandra briefly as follows and more details 
+can be found [here](Apply/README.md).
 
 <div align=center>
 <img decoding="async" src="Figures/flink.svg" width="50%">
@@ -34,9 +43,9 @@ We provide two simple annotations, `@DataObj` and `System.Reclaim()`, that can b
 </div>
 
 <div align=center>
-<img decoding="async" src="Figures/cassandra.svg" width="50%">
+<img decoding="async" src="Figures/BufferCell.svg" width="50%">
 
-**Figure 5: Apply BridgeGC annotations to `ByteBuffer` for Memtable.**
+**Figure 5: Apply BridgeGC annotations to `BufferCell` for Memtable.**
 </div>
 
 ## Run
@@ -55,23 +64,52 @@ The allocator separates the storage of data objects and normal objects in data p
 The collector skips marking labeled data objects and excludes data pages from reclamation in GC cycles where data objects are known to be lived, and performs effective reclamation of data pages only after some annotated data objects are released at the framework level.
 
 # Evaluation
-We apply and evaluate BridgeGC with Flink 1.9.3 and Spark 3.3.0. We compare BridgeGC with all available garbage collectors in OpenJDK 17, includes ZGC, G1, Shenandoah and Parallel. 
+We apply and evaluate BridgeGC with Flink 1.9.3, Spark 3.3.0 and Cassandra 4.0.6. We compare BridgeGC with all available garbage collectors in OpenJDK 17, includes ZGC, G1, Shenandoah and Parallel. 
 <!-- We also compare BridgeGC with a state-of-the-art research work [ROLP](https://rodrigo-bruno.github.io/papers/rbruno-eurosys19.pdf).-->
 
-For Flink, we select four batch machine learning applications that are memory intensive from [Flink examples](https://github.com/apache/flink/tree/master/flink-exa) as the driving workload, including Linear Regression (LR), KMeans (KM), PageRank (PR), Components (CC). For Spark, we choose four representative ML applications from popular big data benchmark [HiBench](https://github.com/Intel-bigdata/HiBench), including Linear Regression (LR), Support Vector Machine (SVM), Gaussian Mixture Model (GMM) and PageRank (PR).
+For Flink, we select five batch machine learning applications that are memory 
+intensive from [Flink examples](https://github.com/apache/flink/tree/master/flink-exa) 
+as the driving workload, including Linear Regression (LR), KMeans (KM), PageRank (PR), 
+Components (CC) and WebLogAnalysis (WA). 
+For Spark, we choose five representative ML applications 
+from popular big data benchmark [HiBench](https://github.com/Intel-bigdata/HiBench), 
+including Linear Regression (LR), Support Vector Machine (SVM), 
+Gaussian Mixture Model (GMM), PageRank (PR) and KMeans (KM).
+For Cassandra, we choose two workloads from a popular NoSQL database benchmark YCSB, 
+including Write-Intensive (WI) workload and Read-Intensive (RI) workload.
+The detail we config the application and frameworks can be found [here](Config/README.md).
 
 <div align=center>
-<img decoding="async" src="Figures/hpcc_gc.svg" width="100%">
+<img decoding="async" src="Figures/taco_gc_modified.svg" width="80%">
 
-**Figure 6: The total concurrent GC time that BridgeGC and ZGC spend when running applications with different heap sizes.**
+**Figure 6: The total concurrent marking and copying GC time that BridgeGC and ZGC 
+spend when running applications with different heap sizes.**
 </div>
 
-As the results shown in Figure 6, BridgeGC reduces concurrent GC time by 42\%-82\% compared to baseline ZGC. BridgeGC achieves lower GC time by consuming 7\%-13\% less memory than ZGC and having 2\%-52\% fewer GC cycle counts. Also, BridgeGC spends 31\%-46\% less marking time per GC cycle. 
+As the results shown in Figure 6, BridgeGC reduces concurrent GC time by 42\%-82\% compared to baseline ZGC. 
+BridgeGC achieves lower GC time by consuming 7\%-13\% less memory than ZGC and 
+having 2\%-52\% fewer GC cycle counts. 
+Also, BridgeGC spends 31\%-46\% less marking time per GC cycle. 
 
 <div align=center>
-<img decoding="async" src="Figures/hpcc_exec.JPG" width="55%">
+<img decoding="async" src="Figures/taco_exec.JPG" width="55%">
 
 **Figure 7: Execution time of applications under baseline ZGC and execution time of other collectors normalized to ZGC.**
 </div>
 
-In terms of application execution time, BridgeGC outperforms other evaluated collectors for all workloads and configurations as shown in Figure 7. Compared to the baseline ZGC, BridgeGC achieves 3%-29% speedup. BridgeGC also reduces up to 26% execution time compared to the default collector G1 in OpenJDK. BridgeGC can improve applications’ performance mainly due to fewer GC cycles and less GC overhead.   
+In terms of application execution time, 
+BridgeGC outperforms other evaluated collectors for 
+all workloads and configurations as shown in Figure 7. 
+Compared to the baseline ZGC, BridgeGC achieves 3%-29% speedup. 
+BridgeGC also reduces up to 26% execution time compared to 
+the default collector G1 in OpenJDK.
+As shown in Figure 8, BridgeGC also outperforms all evaluated collectors
+in latency metrics.
+BridgeGC improves applications’ performance 
+mainly due to fewer GC cycles and less GC overhead.   
+
+<div align=center>
+<img decoding="async" src="Figures/taco_latency.JPG" width="65%">
+
+**Figure 8: Latency metrics of Cassandra workloads under evaluated collectors.**
+</div>
